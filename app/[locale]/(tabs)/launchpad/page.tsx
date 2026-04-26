@@ -6,6 +6,7 @@ import { LaunchpadGrid } from "@/components/launchpad/LaunchpadGrid";
 import { RecordButton } from "@/components/launchpad/RecordButton";
 import { MasterVolume } from "@/components/launchpad/MasterVolume";
 import { useLaunchpad } from "@/hooks/useLaunchpad";
+import { setMasterVolume, unlock as unlockAudio, preload } from "@/lib/audio/engine";
 
 const MAX_MS = 60_000;
 
@@ -19,6 +20,17 @@ export default function LaunchpadPage() {
   const startedAt = useRef<number | null>(null);
 
   const { slots, loading, error } = useLaunchpad();
+
+  useEffect(() => {
+    setMasterVolume(volume);
+  }, [volume]);
+
+  useEffect(() => {
+    if (!audioUnlocked) return;
+    slots.forEach((s) => {
+      if (s.sound?.audio_key) preload(s.sound.audio_key);
+    });
+  }, [audioUnlocked, slots]);
 
   useEffect(() => {
     if (!recording) {
@@ -48,6 +60,12 @@ export default function LaunchpadPage() {
     }
   };
 
+  const handleStart = () => {
+    unlockAudio();
+    setMasterVolume(volume);
+    setAudioUnlocked(true);
+  };
+
   if (!audioUnlocked) {
     return (
       <section className="flex min-h-[70vh] flex-col items-center justify-center px-5 text-center">
@@ -57,7 +75,7 @@ export default function LaunchpadPage() {
         </p>
         <button
           type="button"
-          onClick={() => setAudioUnlocked(true)}
+          onClick={handleStart}
           className="mt-8 rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-neutral-950 transition active:scale-95"
         >
           {t("tapToStart")}

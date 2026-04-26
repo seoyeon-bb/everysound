@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Chip } from "@/components/ui/Chip";
+import { SoundActions } from "@/components/sound/SoundActions";
 import { supabaseServerAnon } from "@/lib/supabase/server";
 import type { Sound } from "@/types/sound";
 
@@ -75,27 +76,7 @@ export default async function SoundDetailPage({
         <span>{tDetail("recommends", { count: sound.recommend_count })}</span>
       </div>
 
-      <div className="mt-6 flex gap-2">
-        <button
-          type="button"
-          className="flex-1 rounded-full bg-emerald-500 py-3 text-sm font-semibold text-neutral-950 transition active:scale-[0.98]"
-        >
-          {tDetail("play")}
-        </button>
-        <button
-          type="button"
-          className="flex-1 rounded-full bg-neutral-800 py-3 text-sm font-semibold text-neutral-100 transition hover:bg-neutral-700 active:scale-[0.98]"
-        >
-          {tDetail("addToLaunchpad")}
-        </button>
-      </div>
-
-      <button
-        type="button"
-        className="mt-2 w-full rounded-full border border-neutral-800 py-3 text-sm font-medium text-neutral-300 transition hover:border-neutral-700 hover:text-neutral-100"
-      >
-        ♥ {tDetail("recommend")}
-      </button>
+      <SoundActions soundId={sound.id} audioKey={sound.audio_key} />
 
       {sound.description && (
         <section className="mt-8">

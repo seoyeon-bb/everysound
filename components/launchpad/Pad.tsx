@@ -1,5 +1,6 @@
 "use client";
 
+import { trigger } from "@/lib/audio/engine";
 import type { Sound } from "@/types/sound";
 
 const PAD_COLORS = [
@@ -15,10 +16,9 @@ const PAD_COLORS = [
 interface PadProps {
   position: number;
   sound: Sound | null;
-  onTrigger?: () => void;
 }
 
-export function Pad({ position, sound, onTrigger }: PadProps) {
+export function Pad({ position, sound }: PadProps) {
   if (!sound) {
     return (
       <div
@@ -30,15 +30,20 @@ export function Pad({ position, sound, onTrigger }: PadProps) {
     );
   }
   const color = PAD_COLORS[position % PAD_COLORS.length];
+  const playable = Boolean(sound.audio_key);
+
   return (
     <button
       type="button"
-      onMouseDown={onTrigger}
+      disabled={!playable}
+      onMouseDown={() => trigger(sound.audio_key)}
       onTouchStart={(e) => {
         e.preventDefault();
-        onTrigger?.();
+        trigger(sound.audio_key);
       }}
-      className={`flex aspect-square select-none flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center transition active:scale-95 ${color}`}
+      className={`flex aspect-square select-none flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center transition active:scale-95 ${
+        playable ? color : "cursor-not-allowed bg-neutral-800/60 text-neutral-500"
+      }`}
     >
       <span className="line-clamp-2 text-sm font-semibold leading-tight">
         {sound.title}

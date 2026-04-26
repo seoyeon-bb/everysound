@@ -3,17 +3,19 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Chip } from "@/components/ui/Chip";
+import { play } from "@/lib/audio/engine";
 import type { Sound } from "@/types/sound";
 
 interface SoundCardProps {
   sound: Sound;
-  onPlay?: (sound: Sound) => void;
   onAddToLaunchpad?: (sound: Sound) => void;
 }
 
-export function SoundCard({ sound, onPlay, onAddToLaunchpad }: SoundCardProps) {
+export function SoundCard({ sound, onAddToLaunchpad }: SoundCardProps) {
   const tActions = useTranslations("archive.actions");
   const tCat = useTranslations("category");
+
+  const playable = Boolean(sound.audio_key);
 
   return (
     <article className="border-b border-neutral-900 px-5 py-4">
@@ -42,8 +44,13 @@ export function SoundCard({ sound, onPlay, onAddToLaunchpad }: SoundCardProps) {
         <div className="flex shrink-0 flex-col gap-1.5">
           <button
             type="button"
-            onClick={() => onPlay?.(sound)}
-            className="rounded-full bg-emerald-500 px-3.5 py-1.5 text-xs font-semibold text-neutral-950 transition active:scale-95"
+            onClick={() => play(sound.audio_key)}
+            disabled={!playable}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95 ${
+              playable
+                ? "bg-emerald-500 text-neutral-950"
+                : "cursor-not-allowed bg-neutral-800 text-neutral-600"
+            }`}
           >
             {tActions("play")}
           </button>
