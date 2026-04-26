@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 
 const MAX_MS = 3000;
 
-type State = "idle" | "recording" | "paused" | "done";
+type State = "ready" | "recording" | "paused" | "done";
 
 interface Props {
   onChange: (blob: Blob | null, durationMs: number) => void;
@@ -13,7 +13,7 @@ interface Props {
 
 export function RecordingWidget({ onChange }: Props) {
   const t = useTranslations("upload.record");
-  const [state, setState] = useState<State>("idle");
+  const [state, setState] = useState<State>("ready");
   const [displayedMs, setDisplayedMs] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -133,8 +133,34 @@ export function RecordingWidget({ onChange }: Props) {
     rec.stop();
   }
 
+  function reset() {
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+    accMsRef.current = 0;
+    setDisplayedMs(0);
+    chunksRef.current = [];
+    setError(null);
+    onChange(null, 0);
+    setState("ready");
+  }
+
   const elapsedDisplay = (displayedMs / 1000).toFixed(1);
   const progressPct = Math.min(100, (displayedMs / MAX_MS) * 100);
+
+  function primaryAction() {
+    if (state === "ready") return start();
+    if (state === "recording") return pause();
+    if (state === "paused") return resume();
+  }
+
+  const primaryLabel =
+    state === "recording" ? t("pause") : state === "paused" ? t("resume") : t("start");
+  const primaryStyle =
+    state === "recording"
+      ? "bg-neutral-800 text-neutral-100"
+      : "bg-rose-500 text-white";
 
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-4">
@@ -144,33 +170,24 @@ export function RecordingWidget({ onChange }: Props) {
         </p>
       )}
 
-      {state === "idle" && (
-        <button
-          type="button"
-          onClick={start}
-          className="flex h-16 w-full items-center justify-center gap-2 rounded-xl bg-rose-500 text-base font-semibold text-white transition active:scale-95"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          {t("start")}
-        </button>
-      )}
-
-      {(state === "recording" || state === "paused") && (
+      {state !== "done" ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-mono text-sm tabular-nums text-rose-400">
               {elapsedDisplay} / 3.0s
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-rose-400">
-              <span
-                className={`inline-block h-2 w-2 rounded-full bg-rose-500 ${
-                  state === "recording" ? "animate-pulse" : "opacity-40"
-                }`}
-              />
-              {state === "recording" ? t("recording") : t("paused")}
-            </span>
+            {state === "recording" && (
+              <span className="flex items-center gap-1.5 text-xs text-rose-400">
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-rose-500" />
+                {t("recording")}
+              </span>
+            )}
+            {state === "paused" && (
+              <span className="flex items-center gap-1.5 text-xs text-rose-400">
+                <span className="inline-block h-2 w-2 rounded-full bg-rose-500 opacity-40" />
+                {t("paused")}
+              </span>
+            )}
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-neutral-800">
             <div
@@ -181,46 +198,40 @@ export function RecordingWidget({ onChange }: Props) {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={state === "recording" ? pause : resume}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition active:scale-95 ${
-                state === "recording"
-                  ? "bg-neutral-800 text-neutral-100"
-                  : "bg-rose-500 text-white"
-              }`}
+              onClick={primaryAction}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition active:scale-95 ${primaryStyle}`}
             >
               {state === "recording" ? (
-                <>
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                    <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
-                  </svg>
-                  {t("pause")}
-                </>
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                  <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+                </svg>
               ) : (
-                <>
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  {t("resume")}
-                </>
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
               )}
+              {primaryLabel}
             </button>
             <button
               type="button"
               onClick={complete}
-              className="flex flex-1 items-center justify-center rounded-xl bg-emerald-500 py-3 text-sm font-semibold text-neutral-950 transition active:scale-95"
+              disabled={state === "ready"}
+              className={`flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-semibold transition active:scale-95 ${
+                state === "ready"
+                  ? "cursor-not-allowed bg-neutral-800 text-neutral-600"
+                  : "bg-emerald-500 text-neutral-950"
+              }`}
             >
               {t("complete")}
             </button>
           </div>
         </div>
-      )}
-
-      {state === "done" && audioUrl && (
+      ) : (
         <div className="space-y-2">
-          <audio src={audioUrl} controls className="w-full" />
+          {audioUrl && <audio src={audioUrl} controls className="w-full" />}
           <button
             type="button"
-            onClick={start}
+            onClick={reset}
             className="w-full rounded-full bg-neutral-800 py-2 text-sm font-medium text-neutral-200 transition hover:bg-neutral-700"
           >
             {t("retry")}
