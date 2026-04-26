@@ -33,8 +33,12 @@ export async function POST(req: NextRequest) {
   if (contentLength > MAX_BYTES) {
     return Response.json({ error: "file too large (max 200KB)" }, { status: 413 });
   }
-  if (!ALLOWED_TYPES.has(contentType)) {
-    return Response.json({ error: "unsupported content type" }, { status: 415 });
+  const baseType = contentType.split(";")[0].trim().toLowerCase();
+  if (!ALLOWED_TYPES.has(baseType)) {
+    return Response.json(
+      { error: `unsupported content type: ${contentType}` },
+      { status: 415 },
+    );
   }
 
   const key = `sounds/${deviceId}/${fileName}`;

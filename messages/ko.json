@@ -66,7 +66,11 @@
     },
     "record": {
       "start": "녹음 시작",
-      "stop": "중지",
+      "pause": "일시정지",
+      "resume": "재개",
+      "complete": "완료",
+      "recording": "녹음 중",
+      "paused": "일시정지",
       "retry": "다시 녹음",
       "micDenied": "마이크 권한이 거부되었어요. 브라우저 설정에서 허용해주세요."
     }

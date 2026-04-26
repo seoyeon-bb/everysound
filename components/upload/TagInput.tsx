@@ -20,7 +20,8 @@ export function TagInput({ value, onChange, max, placeholder }: Props) {
   }
 
   function handleKey(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       commit();
     } else if (e.key === "Backspace" && !input && value.length > 0) {

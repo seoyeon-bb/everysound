@@ -66,7 +66,11 @@
     },
     "record": {
       "start": "Start recording",
-      "stop": "Stop",
+      "pause": "Pause",
+      "resume": "Resume",
+      "complete": "Done",
+      "recording": "Recording",
+      "paused": "Paused",
       "retry": "Re-record",
       "micDenied": "Microphone permission denied. Please allow it in browser settings."
     }
