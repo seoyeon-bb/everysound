@@ -40,7 +40,7 @@
   },
   "upload": {
     "heading": "사운드 업로드",
-    "subtitleBefore": "먼저 3초 녹음을 해주세요",
+    "subtitleBefore": "최대 3초 녹음까지 가능해요",
     "subtitleAfter": "정보를 입력하고 완료를 눌러 등록하세요",
     "cancel": "취소",
     "submit": "완료",
