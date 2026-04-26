@@ -13,6 +13,14 @@ export default async function SoundDetailPage({
   const { id } = await params;
 
   const supabase = supabaseServerAnon();
+  if (!supabase) {
+    return (
+      <div className="px-5 pt-10 text-center text-sm text-rose-300">
+        Supabase 환경변수 미설정
+      </div>
+    );
+  }
+
   const { data, error } = await supabase
     .from("sounds")
     .select("*")

@@ -38,6 +38,11 @@ export async function POST(req: NextRequest) {
   }
 
   const key = `sounds/${deviceId}/${fileName}`;
-  const url = await presignPutUrl(key, contentType, 60);
-  return Response.json({ url, key });
+  try {
+    const url = await presignPutUrl(key, contentType, 60);
+    return Response.json({ url, key });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "presign failed";
+    return Response.json({ error: message }, { status: 503 });
+  }
 }

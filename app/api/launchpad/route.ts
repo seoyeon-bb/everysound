@@ -11,6 +11,9 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = supabaseServerAnon();
+  if (!supabase) {
+    return Response.json({ error: "server not configured" }, { status: 503 });
+  }
   const { data, error } = await supabase
     .from("launchpad_sounds")
     .select("position, sound:sounds(*)")
@@ -36,6 +39,9 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = supabaseServerAdmin();
+  if (!supabase) {
+    return Response.json({ error: "server not configured" }, { status: 503 });
+  }
 
   const { error: padErr } = await supabase
     .from("launchpads")
@@ -91,6 +97,9 @@ export async function DELETE(req: NextRequest) {
   }
 
   const supabase = supabaseServerAdmin();
+  if (!supabase) {
+    return Response.json({ error: "server not configured" }, { status: 503 });
+  }
   const { error } = await supabase
     .from("launchpad_sounds")
     .delete()

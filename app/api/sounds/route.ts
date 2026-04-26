@@ -55,6 +55,9 @@ export async function POST(req: NextRequest) {
       : null;
 
   const supabase = supabaseServerAdmin();
+  if (!supabase) {
+    return Response.json({ error: "server not configured" }, { status: 503 });
+  }
   const { data, error } = await supabase
     .from("sounds")
     .insert({
