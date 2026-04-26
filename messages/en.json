@@ -45,6 +45,14 @@
     "cancel": "Cancel",
     "submit": "Done",
     "submitting": "Uploading…",
+    "phases": {
+      "encoding": "Encoding…",
+      "uploading": "Uploading…",
+      "saving": "Saving…"
+    },
+    "errors": {
+      "encode": "Audio encode failed: {message}"
+    },
     "fields": {
       "title": "Title",
       "category": "Category",
@@ -84,6 +92,7 @@
     "tags": "Tags",
     "anonymous": "anonymous",
     "plays": "{count, plural, =0 {not played yet} =1 {1 play} other {# plays}}",
+    "addedToLaunchpad": "{count, plural, =0 {0 adds} =1 {1 add} other {# adds}}",
     "recommends": "{count, plural, =0 {0 recommends} =1 {1 recommend} other {# recommends}}"
   },
   "launchpad": {

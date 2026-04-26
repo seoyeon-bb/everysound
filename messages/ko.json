@@ -45,6 +45,14 @@
     "cancel": "취소",
     "submit": "완료",
     "submitting": "업로드 중…",
+    "phases": {
+      "encoding": "인코딩 중…",
+      "uploading": "업로드 중…",
+      "saving": "저장 중…"
+    },
+    "errors": {
+      "encode": "오디오 인코딩 실패: {message}"
+    },
     "fields": {
       "title": "제목",
       "category": "카테고리",
@@ -84,6 +92,7 @@
     "tags": "태그",
     "anonymous": "익명",
     "plays": "{count, plural, =0 {아직 듣지 않음} other {# 회 들음}}",
+    "addedToLaunchpad": "{count, plural, =0 {적용 0} other {적용 #}}",
     "recommends": "{count, plural, =0 {추천 0} other {추천 #}}"
   },
   "launchpad": {

@@ -8,10 +8,13 @@ import { CategoryPicker } from "@/components/upload/CategoryPicker";
 import { TagInput } from "@/components/upload/TagInput";
 import { RecordingWidget } from "@/components/upload/RecordingWidget";
 import { Field } from "@/components/upload/Field";
+import { encodeToMp3 } from "@/lib/audio/encoder";
 import type { CategoryKey } from "@/lib/categories";
 
 const TEXT_INPUT =
   "w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500/50 focus:outline-none";
+
+type Phase = "idle" | "encoding" | "uploading" | "saving";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -26,7 +29,7 @@ export default function UploadPage() {
   const [nickname, setLocalNickname] = useState("");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioDurationMs, setAudioDurationMs] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,6 +37,7 @@ export default function UploadPage() {
   }, [storedNickname]);
 
   const recorded = audioBlob !== null;
+  const submitting = phase !== "idle";
   const canSubmit =
     recorded &&
     title.trim() !== "" &&
@@ -44,19 +48,27 @@ export default function UploadPage() {
 
   async function handleSubmit() {
     if (!canSubmit || !audioBlob || !category) return;
-    setSubmitting(true);
     setError(null);
+
+    let mp3Blob: Blob;
+    try {
+      setPhase("encoding");
+      mp3Blob = await encodeToMp3(audioBlob);
+    } catch (e) {
+      setPhase("idle");
+      setError(
+        t("errors.encode", {
+          message: e instanceof Error ? e.message : String(e),
+        }),
+      );
+      return;
+    }
+
     try {
       const soundId = crypto.randomUUID();
-      const ext = audioBlob.type.includes("webm")
-        ? "webm"
-        : audioBlob.type.includes("mp4")
-          ? "mp4"
-          : audioBlob.type.includes("ogg")
-            ? "ogg"
-            : "audio";
-      const fileName = `${soundId}.${ext}`;
+      const fileName = `${soundId}.mp3`;
 
+      setPhase("uploading");
       const r1 = await fetch("/api/sounds/upload-url", {
         method: "POST",
         headers: {
@@ -65,8 +77,8 @@ export default function UploadPage() {
         },
         body: JSON.stringify({
           fileName,
-          contentType: audioBlob.type,
-          contentLength: audioBlob.size,
+          contentType: "audio/mpeg",
+          contentLength: mp3Blob.size,
         }),
       });
       if (!r1.ok) {
@@ -77,13 +89,14 @@ export default function UploadPage() {
 
       const r2 = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": audioBlob.type },
-        body: audioBlob,
+        headers: { "Content-Type": "audio/mpeg" },
+        body: mp3Blob,
       });
       if (!r2.ok) {
         throw new Error(`upload HTTP ${r2.status}`);
       }
 
+      setPhase("saving");
       const r3 = await fetch("/api/sounds", {
         method: "POST",
         headers: {
@@ -111,8 +124,15 @@ export default function UploadPage() {
       router.replace("/archive");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
-      setSubmitting(false);
+      setPhase("idle");
     }
+  }
+
+  function submitLabel() {
+    if (phase === "encoding") return t("phases.encoding");
+    if (phase === "uploading") return t("phases.uploading");
+    if (phase === "saving") return t("phases.saving");
+    return t("submit");
   }
 
   return (
@@ -135,7 +155,7 @@ export default function UploadPage() {
               : "bg-neutral-800 text-neutral-600"
           }`}
         >
-          {submitting ? t("submitting") : t("submit")}
+          {submitLabel()}
         </button>
       </header>
 

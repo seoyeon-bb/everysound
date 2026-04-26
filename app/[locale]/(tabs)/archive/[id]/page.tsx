@@ -68,15 +68,19 @@ export default async function SoundDetailPage({
       <h1 className="mt-3 text-2xl font-bold tracking-tight">{sound.title}</h1>
       <p className="mt-1 text-base text-neutral-300">{sound.summary}</p>
 
-      <div className="mt-3 flex items-center gap-3 text-xs text-neutral-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500">
         <span>by {sound.uploader_nickname ?? tDetail("anonymous")}</span>
         <span>·</span>
         <span>{tDetail("plays", { count: sound.play_count })}</span>
         <span>·</span>
-        <span>{tDetail("recommends", { count: sound.recommend_count })}</span>
+        <span>{tDetail("addedToLaunchpad", { count: sound.launchpad_add_count })}</span>
       </div>
 
-      <SoundActions soundId={sound.id} audioKey={sound.audio_key} />
+      <SoundActions
+        soundId={sound.id}
+        audioKey={sound.audio_key}
+        initialRecommendCount={sound.recommend_count}
+      />
 
       {sound.description && (
         <section className="mt-8">

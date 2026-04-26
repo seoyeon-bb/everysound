@@ -71,10 +71,9 @@ create table if not exists public.launchpad_sounds (
 create or replace function public.bump_sound_launchpad_count()
 returns trigger language plpgsql as $$
 begin
+  -- "추가" 버튼 누른 누적 횟수. delete 시 감소시키지 않음.
   if (tg_op = 'INSERT') then
     update public.sounds set launchpad_add_count = launchpad_add_count + 1 where id = new.sound_id;
-  elsif (tg_op = 'DELETE') then
-    update public.sounds set launchpad_add_count = greatest(launchpad_add_count - 1, 0) where id = old.sound_id;
   end if;
   return null;
 end; $$;
