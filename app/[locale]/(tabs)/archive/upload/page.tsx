@@ -33,11 +33,12 @@ export default function UploadPage() {
     if (storedNickname) setLocalNickname(storedNickname);
   }, [storedNickname]);
 
+  const recorded = audioBlob !== null;
   const canSubmit =
+    recorded &&
     title.trim() !== "" &&
     summary.trim() !== "" &&
     category !== null &&
-    audioBlob !== null &&
     deviceId !== "" &&
     !submitting;
 
@@ -139,6 +140,9 @@ export default function UploadPage() {
       </header>
 
       <h1 className="text-2xl font-bold tracking-tight">{t("heading")}</h1>
+      <p className="mt-1 text-sm text-neutral-500">
+        {recorded ? t("subtitleAfter") : t("subtitleBefore")}
+      </p>
 
       {error && (
         <p className="mt-3 rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
@@ -146,73 +150,75 @@ export default function UploadPage() {
         </p>
       )}
 
-      <div className="mt-6 space-y-5">
-        <Field label={`${t("fields.title")} *`}>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t("placeholders.title")}
-            maxLength={40}
-            className={TEXT_INPUT}
-          />
-        </Field>
-
-        <Field label={`${t("fields.category")} *`}>
-          <CategoryPicker value={category} onChange={setCategory} />
-        </Field>
-
-        <Field label={`${t("fields.summary")} *`}>
-          <input
-            type="text"
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder={t("placeholders.summary")}
-            maxLength={60}
-            className={TEXT_INPUT}
-          />
-        </Field>
-
-        <Field label={`${t("fields.recording")} *`}>
-          <RecordingWidget
-            onChange={(blob, ms) => {
-              setAudioBlob(blob);
-              setAudioDurationMs(ms);
-            }}
-          />
-        </Field>
-
-        <Field label={t("fields.tags")} hint={t("hints.tags")}>
-          <TagInput
-            value={tags}
-            onChange={setTags}
-            max={3}
-            placeholder={t("placeholders.tags")}
-          />
-        </Field>
-
-        <Field label={t("fields.nickname")} hint={t("hints.nickname")}>
-          <input
-            type="text"
-            value={nickname}
-            onChange={(e) => setLocalNickname(e.target.value)}
-            placeholder={t("placeholders.nickname")}
-            maxLength={20}
-            className={TEXT_INPUT}
-          />
-        </Field>
-
-        <Field label={t("fields.description")}>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t("placeholders.description")}
-            rows={4}
-            maxLength={500}
-            className={`${TEXT_INPUT} resize-none`}
-          />
-        </Field>
+      <div className="mt-6">
+        <RecordingWidget
+          onChange={(blob, ms) => {
+            setAudioBlob(blob);
+            setAudioDurationMs(ms);
+          }}
+        />
       </div>
+
+      {recorded && (
+        <div className="mt-6 space-y-5">
+          <Field label={`${t("fields.title")} *`}>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("placeholders.title")}
+              maxLength={40}
+              className={TEXT_INPUT}
+            />
+          </Field>
+
+          <Field label={`${t("fields.category")} *`}>
+            <CategoryPicker value={category} onChange={setCategory} />
+          </Field>
+
+          <Field label={`${t("fields.summary")} *`}>
+            <input
+              type="text"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              placeholder={t("placeholders.summary")}
+              maxLength={60}
+              className={TEXT_INPUT}
+            />
+          </Field>
+
+          <Field label={t("fields.tags")} hint={t("hints.tags")}>
+            <TagInput
+              value={tags}
+              onChange={setTags}
+              max={3}
+              placeholder={t("placeholders.tags")}
+            />
+          </Field>
+
+          <Field label={t("fields.nickname")} hint={t("hints.nickname")}>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setLocalNickname(e.target.value)}
+              placeholder={t("placeholders.nickname")}
+              maxLength={20}
+              className={TEXT_INPUT}
+            />
+          </Field>
+
+          <Field label={t("fields.description")}>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("placeholders.description")}
+              rows={4}
+              maxLength={500}
+              className={`${TEXT_INPUT} resize-none`}
+            />
+          </Field>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@
   },
   "archive": {
     "title": "Archive",
+    "searchPlaceholder": "Search title · summary · category",
     "tabs": {
       "all": "All",
       "mine": "My uploads"
@@ -24,14 +25,23 @@
     },
     "empty": {
       "all": "No sounds to show",
-      "mine": "You haven't uploaded any sounds yet"
+      "mine": "You haven't uploaded any sounds yet",
+      "search": "No search results"
     },
     "loading": "Loading sounds…",
     "error": "Failed to load sounds: {message}",
-    "fab": "Upload sound"
+    "fab": "Upload sound",
+    "toast": {
+      "addedToLaunchpad": "Added to launchpad",
+      "alreadyAdded": "Already on the launchpad",
+      "launchpadFull": "Launchpad is full (12/12)",
+      "addFailed": "Add failed: {message}"
+    }
   },
   "upload": {
     "heading": "Upload sound",
+    "subtitleBefore": "Record up to 3 seconds first",
+    "subtitleAfter": "Fill in the details and tap Done",
     "cancel": "Cancel",
     "submit": "Done",
     "submitting": "Uploading…",
@@ -39,7 +49,6 @@
       "title": "Title",
       "category": "Category",
       "summary": "Summary",
-      "recording": "Recording (max 3s)",
       "tags": "Hashtags",
       "nickname": "Nickname",
       "description": "Description"
@@ -76,6 +85,9 @@
   "launchpad": {
     "title": "Launchpad",
     "tapToStart": "Tap to start",
+    "padCount": "{occupied}/{total} pads",
+    "emptyHint": "Tap \"Add\" on a sound in the Archive to fill a pad",
+    "error": "Failed to load launchpad: {message}",
     "record": {
       "start": "Start recording",
       "stop": "Stop recording",
@@ -85,6 +97,7 @@
   "stage": {
     "title": "Stage",
     "subtitle": "Mixes created on the launchpad",
+    "searchPlaceholder": "Search title · summary",
     "sort": {
       "played": "Most played",
       "liked": "Most liked",
@@ -97,8 +110,11 @@
     "meta": {
       "plays": "{count, plural, =0 {not played yet} =1 {1 play} other {# plays}}"
     },
-    "anonymous": "anonymous",
-    "empty": "No mixes shared yet"
+    "empty": {
+      "all": "No mixes shared yet",
+      "search": "No search results"
+    },
+    "anonymous": "anonymous"
   },
   "category": {
     "voice": "Voice",

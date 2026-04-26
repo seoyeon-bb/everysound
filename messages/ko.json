@@ -6,6 +6,7 @@
   },
   "archive": {
     "title": "아카이브",
+    "searchPlaceholder": "제목·요약·카테고리로 검색",
     "tabs": {
       "all": "전체",
       "mine": "내가 등록한 소리"
@@ -24,14 +25,23 @@
     },
     "empty": {
       "all": "표시할 사운드가 없어요",
-      "mine": "아직 업로드한 소리가 없어요"
+      "mine": "아직 업로드한 소리가 없어요",
+      "search": "검색 결과가 없어요"
     },
     "loading": "사운드 불러오는 중…",
     "error": "사운드를 불러오지 못했어요: {message}",
-    "fab": "사운드 업로드"
+    "fab": "사운드 업로드",
+    "toast": {
+      "addedToLaunchpad": "런치패드에 추가됨",
+      "alreadyAdded": "이미 런치패드에 있어요",
+      "launchpadFull": "런치패드가 가득 찼어요 (12/12)",
+      "addFailed": "추가 실패: {message}"
+    }
   },
   "upload": {
     "heading": "사운드 업로드",
+    "subtitleBefore": "먼저 3초 녹음을 해주세요",
+    "subtitleAfter": "정보를 입력하고 완료를 눌러 등록하세요",
     "cancel": "취소",
     "submit": "완료",
     "submitting": "업로드 중…",
@@ -39,7 +49,6 @@
       "title": "제목",
       "category": "카테고리",
       "summary": "요약",
-      "recording": "녹음 (최대 3초)",
       "tags": "해시태그",
       "nickname": "닉네임",
       "description": "소리 상세 설명"
@@ -76,6 +85,9 @@
   "launchpad": {
     "title": "런치패드",
     "tapToStart": "탭해서 시작",
+    "padCount": "{occupied}/{total} 패드",
+    "emptyHint": "아카이브에서 사운드 \"추가\" 버튼을 눌러 패드에 등록해보세요",
+    "error": "런치패드를 불러오지 못했어요: {message}",
     "record": {
       "start": "녹음 시작",
       "stop": "녹음 종료",
@@ -85,6 +97,7 @@
   "stage": {
     "title": "스테이지",
     "subtitle": "런치패드에서 만든 믹스 모음",
+    "searchPlaceholder": "제목·요약으로 검색",
     "sort": {
       "played": "들은 순",
       "liked": "좋아요 순",
@@ -97,8 +110,11 @@
     "meta": {
       "plays": "{count, plural, =0 {아직 듣지 않음} other {#회}}"
     },
-    "anonymous": "익명",
-    "empty": "아직 공유된 믹스가 없어요"
+    "empty": {
+      "all": "아직 공유된 믹스가 없어요",
+      "search": "검색 결과가 없어요"
+    },
+    "anonymous": "익명"
   },
   "category": {
     "voice": "보이스",

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { LaunchpadGrid } from "@/components/launchpad/LaunchpadGrid";
 import { RecordButton } from "@/components/launchpad/RecordButton";
 import { MasterVolume } from "@/components/launchpad/MasterVolume";
-import { MOCK_LAUNCHPAD } from "@/lib/mock/launchpad";
+import { useLaunchpad } from "@/hooks/useLaunchpad";
 
 const MAX_MS = 60_000;
 
@@ -17,6 +17,8 @@ export default function LaunchpadPage() {
   const [recording, setRecording] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const startedAt = useRef<number | null>(null);
+
+  const { slots, loading, error } = useLaunchpad();
 
   useEffect(() => {
     if (!recording) {
@@ -64,10 +66,17 @@ export default function LaunchpadPage() {
     );
   }
 
+  const occupied = slots.filter((s) => s.sound).length;
+
   return (
     <>
       <header className="flex items-center justify-between px-5 pt-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            {t("padCount", { occupied, total: 12 })}
+          </p>
+        </div>
         <RecordButton
           recording={recording}
           elapsedMs={elapsedMs}
@@ -80,7 +89,29 @@ export default function LaunchpadPage() {
       </p>
 
       <div className="mt-5 px-5">
-        <LaunchpadGrid slots={MOCK_LAUNCHPAD} />
+        {loading ? (
+          <div className="grid grid-cols-3 gap-2.5 md:grid-cols-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="aspect-square animate-pulse rounded-2xl bg-neutral-900/50"
+              />
+            ))}
+          </div>
+        ) : error ? (
+          <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+            {t("error", { message: error })}
+          </p>
+        ) : (
+          <>
+            {occupied === 0 && (
+              <p className="mb-4 rounded-2xl border border-neutral-800 bg-neutral-900/40 px-4 py-3 text-center text-xs text-neutral-500">
+                {t("emptyHint")}
+              </p>
+            )}
+            <LaunchpadGrid slots={slots} />
+          </>
+        )}
       </div>
 
       <div className="mt-6 px-5">
