@@ -62,7 +62,7 @@
     },
     "hints": {
       "tags": "Max 3. Press Enter or comma to add",
-      "nickname": "Leave blank to upload anonymously"
+      "nickname": "One nickname per device. Changing it also renames all your previous sounds & mixes. Leave blank to be anonymous on all of them."
     },
     "record": {
       "start": "Start recording",

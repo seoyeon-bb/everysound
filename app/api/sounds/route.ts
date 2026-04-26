@@ -49,16 +49,18 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "invalid id" }, { status: 400 });
   }
 
+  const finalNickname =
+    typeof uploader_nickname === "string" && uploader_nickname.trim()
+      ? uploader_nickname.trim().slice(0, 20)
+      : null;
+
   const supabase = supabaseServerAdmin();
   const { data, error } = await supabase
     .from("sounds")
     .insert({
       ...(id ? { id } : {}),
       device_id: deviceId,
-      uploader_nickname:
-        typeof uploader_nickname === "string" && uploader_nickname.trim()
-          ? uploader_nickname.trim().slice(0, 20)
-          : null,
+      uploader_nickname: finalNickname,
       title: title.trim(),
       summary: summary.trim(),
       description:
@@ -78,5 +80,17 @@ export async function POST(req: NextRequest) {
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
+
+  await Promise.all([
+    supabase
+      .from("sounds")
+      .update({ uploader_nickname: finalNickname })
+      .eq("device_id", deviceId),
+    supabase
+      .from("stage_recordings")
+      .update({ uploader_nickname: finalNickname })
+      .eq("device_id", deviceId),
+  ]);
+
   return Response.json({ sound: data });
 }

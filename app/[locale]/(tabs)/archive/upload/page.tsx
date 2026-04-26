@@ -107,7 +107,7 @@ export default function UploadPage() {
         throw new Error(e.error ?? `insert HTTP ${r3.status}`);
       }
 
-      if (nickname.trim()) saveNickname(nickname.trim());
+      saveNickname(nickname.trim());
       router.replace("/archive");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
