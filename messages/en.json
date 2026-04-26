@@ -26,7 +26,41 @@
       "all": "No sounds to show",
       "mine": "You haven't uploaded any sounds yet"
     },
+    "loading": "Loading sounds…",
+    "error": "Failed to load sounds: {message}",
     "fab": "Upload sound"
+  },
+  "upload": {
+    "heading": "Upload sound",
+    "cancel": "Cancel",
+    "submit": "Done",
+    "submitting": "Uploading…",
+    "fields": {
+      "title": "Title",
+      "category": "Category",
+      "summary": "Summary",
+      "recording": "Recording (max 3s)",
+      "tags": "Hashtags",
+      "nickname": "Nickname",
+      "description": "Description"
+    },
+    "placeholders": {
+      "title": "e.g. Wow",
+      "summary": "e.g. Sound effect when surprised",
+      "tags": "e.g. surprise, awe",
+      "nickname": "e.g. sunset",
+      "description": "Tell us more about this sound (optional)"
+    },
+    "hints": {
+      "tags": "Max 3. Press Enter or comma to add",
+      "nickname": "Leave blank to upload anonymously"
+    },
+    "record": {
+      "start": "Start recording",
+      "stop": "Stop",
+      "retry": "Re-record",
+      "micDenied": "Microphone permission denied. Please allow it in browser settings."
+    }
   },
   "detail": {
     "back": "Archive",

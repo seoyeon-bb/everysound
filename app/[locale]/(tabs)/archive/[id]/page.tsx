@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Chip } from "@/components/ui/Chip";
-import { findMockSound } from "@/lib/mock/sounds";
+import { supabaseServerAnon } from "@/lib/supabase/server";
+import type { Sound } from "@/types/sound";
 
 export default async function SoundDetailPage({
   params,
@@ -10,8 +11,16 @@ export default async function SoundDetailPage({
   params: Promise<{ id: string; locale: string }>;
 }) {
   const { id } = await params;
-  const sound = findMockSound(id);
-  if (!sound) notFound();
+
+  const supabase = supabaseServerAnon();
+  const { data, error } = await supabase
+    .from("sounds")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) notFound();
+  const sound = data as Sound;
 
   const tCat = await getTranslations("category");
   const tDetail = await getTranslations("detail");
@@ -23,7 +32,13 @@ export default async function SoundDetailPage({
           href="/archive"
           className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-200"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="h-4 w-4"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           {tDetail("back")}
@@ -76,7 +91,9 @@ export default async function SoundDetailPage({
 
       {sound.description && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold text-neutral-400">{tDetail("description")}</h2>
+          <h2 className="text-sm font-semibold text-neutral-400">
+            {tDetail("description")}
+          </h2>
           <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-neutral-200">
             {sound.description}
           </p>
@@ -85,7 +102,9 @@ export default async function SoundDetailPage({
 
       {sound.tags.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-semibold text-neutral-400">{tDetail("tags")}</h2>
+          <h2 className="text-sm font-semibold text-neutral-400">
+            {tDetail("tags")}
+          </h2>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {sound.tags.map((tag) => (
               <Chip key={tag} variant="tag" size="md">

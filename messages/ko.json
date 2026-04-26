@@ -26,7 +26,41 @@
       "all": "표시할 사운드가 없어요",
       "mine": "아직 업로드한 소리가 없어요"
     },
+    "loading": "사운드 불러오는 중…",
+    "error": "사운드를 불러오지 못했어요: {message}",
     "fab": "사운드 업로드"
+  },
+  "upload": {
+    "heading": "사운드 업로드",
+    "cancel": "취소",
+    "submit": "완료",
+    "submitting": "업로드 중…",
+    "fields": {
+      "title": "제목",
+      "category": "카테고리",
+      "summary": "요약",
+      "recording": "녹음 (최대 3초)",
+      "tags": "해시태그",
+      "nickname": "닉네임",
+      "description": "소리 상세 설명"
+    },
+    "placeholders": {
+      "title": "예: 와우",
+      "summary": "예: 깜짝 놀랐을 때 내는 효과음",
+      "tags": "예: 놀람, 감탄",
+      "nickname": "예: 노을",
+      "description": "이 소리에 대해 더 자세히 알려주세요 (선택)"
+    },
+    "hints": {
+      "tags": "최대 3개. Enter 또는 쉼표로 추가",
+      "nickname": "비워두면 익명으로 표시됩니다"
+    },
+    "record": {
+      "start": "녹음 시작",
+      "stop": "중지",
+      "retry": "다시 녹음",
+      "micDenied": "마이크 권한이 거부되었어요. 브라우저 설정에서 허용해주세요."
+    }
   },
   "detail": {
     "back": "아카이브",

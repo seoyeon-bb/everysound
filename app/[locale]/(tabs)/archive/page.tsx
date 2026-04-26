@@ -7,7 +7,7 @@ import { ArchiveTabs, type ArchiveTabKey } from "@/components/archive/ArchiveTab
 import { ArchiveSort, type SortKey } from "@/components/archive/ArchiveSort";
 import { PitchFilterChip } from "@/components/archive/PitchFilterChip";
 import { UploadFab } from "@/components/archive/UploadFab";
-import { MOCK_SOUNDS } from "@/lib/mock/sounds";
+import { useSounds } from "@/hooks/useSounds";
 import { useDeviceId } from "@/hooks/useDeviceId";
 
 export default function ArchivePage() {
@@ -16,9 +16,10 @@ export default function ArchivePage() {
   const [sort, setSort] = useState<SortKey>("played");
   const [pitchOn, setPitchOn] = useState(false);
   const { deviceId } = useDeviceId();
+  const { sounds: allSounds, loading, error } = useSounds();
 
   const sounds = useMemo(() => {
-    let arr = MOCK_SOUNDS.slice();
+    let arr = allSounds.slice();
 
     if (tab === "mine") {
       arr = arr.filter((s) => s.device_id === deviceId);
@@ -34,7 +35,7 @@ export default function ArchivePage() {
     });
 
     return arr;
-  }, [tab, sort, pitchOn, deviceId]);
+  }, [allSounds, tab, sort, pitchOn, deviceId]);
 
   return (
     <>
@@ -52,7 +53,15 @@ export default function ArchivePage() {
       </div>
 
       <ul className="mt-3">
-        {sounds.length === 0 ? (
+        {loading ? (
+          <li className="px-5 py-16 text-center text-sm text-neutral-500">
+            {t("loading")}
+          </li>
+        ) : error ? (
+          <li className="px-5 py-16 text-center text-sm text-rose-400">
+            {t("error", { message: error })}
+          </li>
+        ) : sounds.length === 0 ? (
           <li className="px-5 py-16 text-center text-sm text-neutral-500">
             {tab === "mine" ? t("empty.mine") : t("empty.all")}
           </li>
