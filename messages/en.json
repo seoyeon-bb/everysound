@@ -1,0 +1,86 @@
+{
+  "nav": {
+    "archive": "Archive",
+    "launchpad": "Launchpad",
+    "stage": "Stage"
+  },
+  "archive": {
+    "title": "Archive",
+    "tabs": {
+      "all": "All",
+      "mine": "My uploads"
+    },
+    "sort": {
+      "played": "Most played",
+      "added": "Most added",
+      "created": "Newest"
+    },
+    "filter": {
+      "pitch": "Pitch"
+    },
+    "actions": {
+      "play": "Play",
+      "addToLaunchpad": "Add"
+    },
+    "empty": {
+      "all": "No sounds to show",
+      "mine": "You haven't uploaded any sounds yet"
+    },
+    "fab": "Upload sound"
+  },
+  "detail": {
+    "back": "Archive",
+    "play": "Play",
+    "addToLaunchpad": "Add to launchpad",
+    "recommend": "Recommend",
+    "description": "Description",
+    "tags": "Tags",
+    "anonymous": "anonymous",
+    "plays": "{count, plural, =0 {not played yet} =1 {1 play} other {# plays}}",
+    "recommends": "{count, plural, =0 {0 recommends} =1 {1 recommend} other {# recommends}}"
+  },
+  "launchpad": {
+    "title": "Launchpad",
+    "tapToStart": "Tap to start",
+    "record": {
+      "start": "Start recording",
+      "stop": "Stop recording",
+      "limitNotice": "Recording is capped at 1 minute. It auto-stops past 1 min."
+    }
+  },
+  "stage": {
+    "title": "Stage",
+    "subtitle": "Mixes created on the launchpad",
+    "sort": {
+      "played": "Most played",
+      "liked": "Most liked",
+      "created": "Newest"
+    },
+    "actions": {
+      "play": "Play",
+      "like": "Like"
+    },
+    "meta": {
+      "plays": "{count, plural, =0 {not played yet} =1 {1 play} other {# plays}}"
+    },
+    "anonymous": "anonymous",
+    "empty": "No mixes shared yet"
+  },
+  "category": {
+    "voice": "Voice",
+    "beatbox": "Beatbox",
+    "body": "Body",
+    "mouth": "Mouth",
+    "percussion": "Percussion",
+    "strings": "Strings",
+    "wind": "Wind & Brass",
+    "keys": "Keys",
+    "electronic": "Electronic",
+    "animal": "Animal",
+    "nature": "Nature",
+    "environment": "Environment",
+    "object": "Object",
+    "sfx": "SFX",
+    "other": "Other"
+  }
+}

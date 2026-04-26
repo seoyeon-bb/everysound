@@ -1,0 +1,86 @@
+{
+  "nav": {
+    "archive": "아카이브",
+    "launchpad": "런치패드",
+    "stage": "스테이지"
+  },
+  "archive": {
+    "title": "아카이브",
+    "tabs": {
+      "all": "전체",
+      "mine": "내가 등록한 소리"
+    },
+    "sort": {
+      "played": "들은 순",
+      "added": "적용 순",
+      "created": "등록 순"
+    },
+    "filter": {
+      "pitch": "음정"
+    },
+    "actions": {
+      "play": "듣기",
+      "addToLaunchpad": "추가"
+    },
+    "empty": {
+      "all": "표시할 사운드가 없어요",
+      "mine": "아직 업로드한 소리가 없어요"
+    },
+    "fab": "사운드 업로드"
+  },
+  "detail": {
+    "back": "아카이브",
+    "play": "듣기",
+    "addToLaunchpad": "런치패드에 추가",
+    "recommend": "추천",
+    "description": "소리 설명",
+    "tags": "태그",
+    "anonymous": "익명",
+    "plays": "{count, plural, =0 {아직 듣지 않음} other {# 회 들음}}",
+    "recommends": "{count, plural, =0 {추천 0} other {추천 #}}"
+  },
+  "launchpad": {
+    "title": "런치패드",
+    "tapToStart": "탭해서 시작",
+    "record": {
+      "start": "녹음 시작",
+      "stop": "녹음 종료",
+      "limitNotice": "녹음은 최대 1분까지만 가능합니다. 1분 초과 시 자동 종료돼요"
+    }
+  },
+  "stage": {
+    "title": "스테이지",
+    "subtitle": "런치패드에서 만든 믹스 모음",
+    "sort": {
+      "played": "들은 순",
+      "liked": "좋아요 순",
+      "created": "등록 순"
+    },
+    "actions": {
+      "play": "재생",
+      "like": "좋아요"
+    },
+    "meta": {
+      "plays": "{count, plural, =0 {아직 듣지 않음} other {#회}}"
+    },
+    "anonymous": "익명",
+    "empty": "아직 공유된 믹스가 없어요"
+  },
+  "category": {
+    "voice": "보이스",
+    "beatbox": "비트박스",
+    "body": "신체음",
+    "mouth": "입소리",
+    "percussion": "타악기",
+    "strings": "현악기",
+    "wind": "관악기",
+    "keys": "건반",
+    "electronic": "전자음",
+    "animal": "동물",
+    "nature": "자연",
+    "environment": "환경",
+    "object": "사물",
+    "sfx": "효과음",
+    "other": "기타"
+  }
+}
