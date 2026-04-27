@@ -198,7 +198,7 @@ export function RecordingWidget({ onChange }: Props) {
     const url = URL.createObjectURL(mp3Blob);
     setAudioUrl(url);
     setState("done");
-    onChange(mp3Blob, accMsRef.current);
+    onChange(mp3Blob, Math.round(accMsRef.current));
   }
 
   function reset() {

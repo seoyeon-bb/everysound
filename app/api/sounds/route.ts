@@ -71,7 +71,10 @@ export async function POST(req: NextRequest) {
           ? description.trim().slice(0, 500)
           : null,
       audio_key,
-      duration_ms: typeof duration_ms === "number" ? Math.min(duration_ms, 3000) : null,
+      duration_ms:
+        typeof duration_ms === "number" && Number.isFinite(duration_ms)
+          ? Math.min(Math.round(duration_ms), 3000)
+          : null,
       category,
       tags: safeTags.slice(0, 3),
       pitch: typeof pitch === "string" ? pitch : null,
