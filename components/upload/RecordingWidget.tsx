@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { encodePcmMonoToMp3, normalizeRms } from "@/lib/audio/encoder";
 
 const MAX_MS = 3000;
-const BUFFER_SIZE = 4096;
+const BUFFER_SIZE = 16384;
 
 type State = "ready" | "recording" | "paused" | "done";
 
@@ -81,7 +81,15 @@ export function RecordingWidget({ onChange }: Props) {
 
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false,
+          channelCount: 1,
+          sampleRate: 44100,
+        },
+      });
     } catch {
       setError(t("micDenied"));
       return;

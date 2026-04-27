@@ -2,7 +2,6 @@
 
 import { Mp3Encoder } from "@breezystack/lamejs";
 
-const KBPS = 96;
 const FRAME = 1152;
 
 function floatTo16(input: Float32Array): Int16Array {
@@ -41,12 +40,35 @@ export function normalizeRms(
 export function encodePcmMonoToMp3(
   samples: Float32Array,
   sampleRate: number,
+  kbps = 128,
 ): Blob {
   const samples16 = floatTo16(samples);
-  const encoder = new Mp3Encoder(1, sampleRate, KBPS);
+  const encoder = new Mp3Encoder(1, sampleRate, kbps);
   const out: Uint8Array[] = [];
   for (let i = 0; i < samples16.length; i += FRAME) {
     const buf = encoder.encodeBuffer(samples16.subarray(i, i + FRAME));
+    if (buf.length > 0) out.push(buf);
+  }
+  const tail = encoder.flush();
+  if (tail.length > 0) out.push(tail);
+  return new Blob(out as BlobPart[], { type: "audio/mpeg" });
+}
+
+export function encodePcmStereoToMp3(
+  left: Float32Array,
+  right: Float32Array,
+  sampleRate: number,
+  kbps = 96,
+): Blob {
+  const left16 = floatTo16(left);
+  const right16 = floatTo16(right);
+  const encoder = new Mp3Encoder(2, sampleRate, kbps);
+  const out: Uint8Array[] = [];
+  const length = Math.min(left16.length, right16.length);
+  for (let i = 0; i < length; i += FRAME) {
+    const lc = left16.subarray(i, i + FRAME);
+    const rc = right16.subarray(i, i + FRAME);
+    const buf = encoder.encodeBuffer(lc, rc);
     if (buf.length > 0) out.push(buf);
   }
   const tail = encoder.flush();

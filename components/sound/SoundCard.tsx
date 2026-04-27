@@ -23,7 +23,6 @@ export function SoundCard({ sound, onAddToLaunchpad }: SoundCardProps) {
         <Link href={`/archive/${sound.id}`} className="min-w-0 flex-1">
           <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
             <Chip variant="category">{tCat(sound.category)}</Chip>
-            {sound.pitch && <Chip variant="pitch">{sound.pitch}</Chip>}
           </div>
           <h3 className="truncate text-base font-semibold text-neutral-100">
             {sound.title}

@@ -17,9 +17,6 @@
       "added": "적용 순",
       "created": "등록 순"
     },
-    "filter": {
-      "pitch": "음정"
-    },
     "actions": {
       "play": "듣기",
       "addToLaunchpad": "추가"
@@ -96,14 +93,31 @@
   },
   "launchpad": {
     "title": "런치패드",
-    "tapToStart": "탭해서 시작",
     "padCount": "{occupied}/{total} 패드",
     "emptyHint": "아카이브에서 사운드 \"추가\" 버튼을 눌러 패드에 등록해보세요",
     "error": "런치패드를 불러오지 못했어요: {message}",
+    "encoding": "믹스 인코딩 중…",
+    "recordSetupFailed": "녹음 시작 실패. 사운드 패드를 한 번 눌러 오디오를 깨운 뒤 다시 시도해주세요.",
+    "recordEmpty": "녹음된 소리가 없어요. 녹음 중 패드를 눌러보세요.",
+    "recordEncodeFailed": "믹스 인코딩 실패: {message}",
     "record": {
       "start": "녹음 시작",
       "stop": "녹음 종료",
       "limitNotice": "녹음은 최대 1분까지만 가능합니다. 1분 초과 시 자동 종료돼요"
+    },
+    "postMix": {
+      "title": "방금 만든 믹스",
+      "download": "내 기기에 다운로드",
+      "downloaded": "다운로드됨",
+      "shareSection": "스테이지에 공유 (선택)",
+      "share": "스테이지에 공유",
+      "shared": "스테이지에 공유했어요",
+      "uploading": "업로드 중…",
+      "close": "닫기",
+      "placeholders": {
+        "title": "음악 제목",
+        "summary": "한 줄 소개"
+      }
     }
   },
   "stage": {

@@ -41,16 +41,13 @@ export function Pad({ position, sound }: PadProps) {
         e.preventDefault();
         trigger(sound.audio_key);
       }}
-      className={`flex aspect-square select-none flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center transition active:scale-95 ${
+      className={`flex aspect-square select-none items-center justify-center rounded-2xl px-2 py-2 text-center transition active:scale-95 ${
         playable ? color : "cursor-not-allowed bg-neutral-800/60 text-neutral-500"
       }`}
     >
-      <span className="line-clamp-2 text-sm font-semibold leading-tight">
+      <span className="line-clamp-3 text-sm font-semibold leading-tight">
         {sound.title}
       </span>
-      {sound.pitch && (
-        <span className="text-[10px] font-medium opacity-80">{sound.pitch}</span>
-      )}
     </button>
   );
 }

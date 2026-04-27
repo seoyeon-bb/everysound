@@ -17,9 +17,6 @@
       "added": "Most added",
       "created": "Newest"
     },
-    "filter": {
-      "pitch": "Pitch"
-    },
     "actions": {
       "play": "Play",
       "addToLaunchpad": "Add"
@@ -96,14 +93,31 @@
   },
   "launchpad": {
     "title": "Launchpad",
-    "tapToStart": "Tap to start",
     "padCount": "{occupied}/{total} pads",
     "emptyHint": "Tap \"Add\" on a sound in the Archive to fill a pad",
     "error": "Failed to load launchpad: {message}",
+    "encoding": "Encoding mix…",
+    "recordSetupFailed": "Couldn't start recording. Tap a pad once to wake the audio engine, then try again.",
+    "recordEmpty": "Nothing was recorded. Try tapping a pad while recording.",
+    "recordEncodeFailed": "Mix encoding failed: {message}",
     "record": {
       "start": "Start recording",
       "stop": "Stop recording",
       "limitNotice": "Recording is capped at 1 minute. It auto-stops past 1 min."
+    },
+    "postMix": {
+      "title": "Your mix",
+      "download": "Download to device",
+      "downloaded": "Downloaded",
+      "shareSection": "Share to stage (optional)",
+      "share": "Share to stage",
+      "shared": "Shared to stage",
+      "uploading": "Uploading…",
+      "close": "Close",
+      "placeholders": {
+        "title": "Mix title",
+        "summary": "Short description"
+      }
     }
   },
   "stage": {

@@ -58,11 +58,6 @@ export default async function SoundDetailPage({
         <Chip variant="category" size="md">
           {tCat(sound.category)}
         </Chip>
-        {sound.pitch && (
-          <Chip variant="pitch" size="md">
-            {sound.pitch}
-          </Chip>
-        )}
       </div>
 
       <h1 className="mt-3 text-2xl font-bold tracking-tight">{sound.title}</h1>

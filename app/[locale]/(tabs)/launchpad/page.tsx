@@ -5,19 +5,27 @@ import { useTranslations } from "next-intl";
 import { LaunchpadGrid } from "@/components/launchpad/LaunchpadGrid";
 import { RecordButton } from "@/components/launchpad/RecordButton";
 import { MasterVolume } from "@/components/launchpad/MasterVolume";
+import { PostMixModal } from "@/components/launchpad/PostMixModal";
 import { useLaunchpad } from "@/hooks/useLaunchpad";
-import { setMasterVolume, unlock as unlockAudio, preload } from "@/lib/audio/engine";
+import { setMasterVolume, preload } from "@/lib/audio/engine";
+import { LaunchpadCapture } from "@/lib/audio/launchpadCapture";
+import { encodePcmStereoToMp3 } from "@/lib/audio/encoder";
 
 const MAX_MS = 60_000;
 
 export default function LaunchpadPage() {
   const t = useTranslations("launchpad");
 
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [volume, setVolume] = useState(0.8);
   const [recording, setRecording] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [mixBlob, setMixBlob] = useState<Blob | null>(null);
+  const [mixDurationMs, setMixDurationMs] = useState(0);
+  const [encoding, setEncoding] = useState(false);
+  const [recordError, setRecordError] = useState<string | null>(null);
+
   const startedAt = useRef<number | null>(null);
+  const captureRef = useRef<LaunchpadCapture | null>(null);
 
   const { slots, loading, error } = useLaunchpad();
 
@@ -38,15 +46,18 @@ export default function LaunchpadPage() {
   }, []);
 
   useEffect(() => {
+    LaunchpadCapture.ensureHowlerCtx();
+  }, []);
+
+  useEffect(() => {
     setMasterVolume(volume);
   }, [volume]);
 
   useEffect(() => {
-    if (!audioUnlocked) return;
     slots.forEach((s) => {
       if (s.sound?.audio_key) preload(s.sound.audio_key);
     });
-  }, [audioUnlocked, slots]);
+  }, [slots]);
 
   useEffect(() => {
     if (!recording) {
@@ -59,46 +70,72 @@ export default function LaunchpadPage() {
       const e = performance.now() - startedAt.current;
       if (e >= MAX_MS) {
         setElapsedMs(MAX_MS);
-        setRecording(false);
+        finalizeRecording();
         return;
       }
       setElapsedMs(e);
     }, 100);
     return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording]);
+
+  useEffect(() => {
+    return () => {
+      captureRef.current?.cleanup();
+    };
+  }, []);
+
+  function startRecording() {
+    setRecordError(null);
+    const cap = new LaunchpadCapture();
+    const ok = cap.start();
+    if (!ok) {
+      setRecordError(t("recordSetupFailed"));
+      return;
+    }
+    captureRef.current = cap;
+    setElapsedMs(0);
+    setRecording(true);
+  }
+
+  async function finalizeRecording() {
+    setRecording(false);
+    const cap = captureRef.current;
+    if (!cap) return;
+    const data = cap.stop();
+    captureRef.current = null;
+    if (!data || data.left.length === 0) {
+      setRecordError(t("recordEmpty"));
+      return;
+    }
+
+    setEncoding(true);
+    const finalDur = Math.min(
+      Math.round((data.left.length / data.sampleRate) * 1000),
+      MAX_MS,
+    );
+    try {
+      const blob = encodePcmStereoToMp3(data.left, data.right, data.sampleRate);
+      setMixBlob(blob);
+      setMixDurationMs(finalDur);
+    } catch (e) {
+      setRecordError(
+        t("recordEncodeFailed", {
+          message: e instanceof Error ? e.message : String(e),
+        }),
+      );
+    } finally {
+      setEncoding(false);
+    }
+  }
 
   const toggleRecord = () => {
     if (recording) {
-      setRecording(false);
+      void finalizeRecording();
     } else {
-      setElapsedMs(0);
-      setRecording(true);
+      startRecording();
     }
   };
-
-  const handleStart = () => {
-    unlockAudio();
-    setMasterVolume(volume);
-    setAudioUnlocked(true);
-  };
-
-  if (!audioUnlocked) {
-    return (
-      <section className="flex min-h-[70vh] flex-col items-center justify-center px-5 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-        <p className="mt-2 max-w-xs text-sm text-neutral-500">
-          {t("record.limitNotice")}
-        </p>
-        <button
-          type="button"
-          onClick={handleStart}
-          className="mt-8 rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-neutral-950 transition active:scale-95"
-        >
-          {t("tapToStart")}
-        </button>
-      </section>
-    );
-  }
 
   const occupied = slots.filter((s) => s.sound).length;
 
@@ -121,6 +158,12 @@ export default function LaunchpadPage() {
       <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
         {t("record.limitNotice")}
       </p>
+
+      {recordError && (
+        <p className="mt-2 mx-5 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+          {recordError}
+        </p>
+      )}
 
       <div className="mt-5 px-5">
         {loading ? (
@@ -151,6 +194,25 @@ export default function LaunchpadPage() {
       <div className="mt-6 px-5">
         <MasterVolume value={volume} onChange={setVolume} />
       </div>
+
+      {encoding && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+          <p className="rounded-full bg-neutral-900 px-4 py-2 text-sm text-neutral-200">
+            {t("encoding")}
+          </p>
+        </div>
+      )}
+
+      {mixBlob && (
+        <PostMixModal
+          blob={mixBlob}
+          durationMs={mixDurationMs}
+          onClose={() => {
+            setMixBlob(null);
+            setMixDurationMs(0);
+          }}
+        />
+      )}
     </>
   );
 }

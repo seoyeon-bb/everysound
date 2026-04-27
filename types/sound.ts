@@ -11,8 +11,6 @@ export interface Sound {
   duration_ms: number | null;
   category: CategoryKey;
   tags: string[];
-  pitch: string | null;
-  pitch_hz: number | null;
   play_count: number;
   launchpad_add_count: number;
   recommend_count: number;

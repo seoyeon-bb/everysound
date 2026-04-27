@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { SoundCard } from "@/components/sound/SoundCard";
 import { ArchiveTabs, type ArchiveTabKey } from "@/components/archive/ArchiveTabs";
 import { ArchiveSort, type SortKey } from "@/components/archive/ArchiveSort";
-import { PitchFilterChip } from "@/components/archive/PitchFilterChip";
 import { UploadFab } from "@/components/archive/UploadFab";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Toast } from "@/components/ui/Toast";
@@ -20,7 +19,6 @@ export default function ArchivePage() {
   const tCat = useTranslations("category");
   const [tab, setTab] = useState<ArchiveTabKey>("all");
   const [sort, setSort] = useState<SortKey>("played");
-  const [pitchOn, setPitchOn] = useState(false);
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const { deviceId } = useDeviceId();
@@ -34,7 +32,6 @@ export default function ArchivePage() {
     } else if (tab !== "all") {
       arr = arr.filter((s) => s.category === tab);
     }
-    if (pitchOn) arr = arr.filter((s) => s.pitch);
 
     if (query.trim()) {
       arr = arr.filter((s) =>
@@ -50,7 +47,7 @@ export default function ArchivePage() {
     });
 
     return arr;
-  }, [allSounds, tab, sort, pitchOn, query, tCat, deviceId]);
+  }, [allSounds, tab, sort, query, tCat, deviceId]);
 
   const handleAddToLaunchpad = async (sound: Sound) => {
     if (!deviceId) return;
@@ -84,8 +81,7 @@ export default function ArchivePage() {
         <ArchiveTabs active={tab} onChange={setTab} />
       </div>
 
-      <div className="mt-3 flex items-center justify-between px-5">
-        <PitchFilterChip active={pitchOn} onToggle={() => setPitchOn((v) => !v)} />
+      <div className="mt-3 flex items-center justify-end px-5">
         <ArchiveSort active={sort} onChange={setSort} />
       </div>
 
