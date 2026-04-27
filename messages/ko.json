@@ -13,6 +13,7 @@
     },
     "sort": {
       "played": "들은 순",
+      "recommended": "추천 순",
       "added": "적용 순",
       "created": "등록 순"
     },

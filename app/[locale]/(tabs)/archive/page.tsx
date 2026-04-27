@@ -44,6 +44,7 @@ export default function ArchivePage() {
 
     arr.sort((a, b) => {
       if (sort === "played") return b.play_count - a.play_count;
+      if (sort === "recommended") return b.recommend_count - a.recommend_count;
       if (sort === "added") return b.launchpad_add_count - a.launchpad_add_count;
       return b.created_at.localeCompare(a.created_at);
     });

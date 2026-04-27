@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl";
 
-export type SortKey = "played" | "added" | "created";
+export type SortKey = "played" | "recommended" | "added" | "created";
 
-const SORT_KEYS: SortKey[] = ["played", "added", "created"];
+const SORT_KEYS: SortKey[] = ["played", "recommended", "added", "created"];
 
 interface Props {
   active: SortKey;

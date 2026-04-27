@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { encodePcmMonoToMp3 } from "@/lib/audio/encoder";
+import { encodePcmMonoToMp3, normalizeRms } from "@/lib/audio/encoder";
 
 const MAX_MS = 3000;
 const BUFFER_SIZE = 4096;
@@ -174,17 +174,27 @@ export function RecordingWidget({ onChange }: Props) {
       setState("ready");
       return;
     }
-    const merged = new Float32Array(totalLen);
+    const maxSamples = Math.floor((MAX_MS / 1000) * sampleRate);
+    const finalLen = Math.min(totalLen, maxSamples);
+    const merged = new Float32Array(finalLen);
     let offset = 0;
     for (const a of samplesRef.current) {
-      merged.set(a, offset);
-      offset += a.length;
+      if (offset >= finalLen) break;
+      const toCopy = Math.min(a.length, finalLen - offset);
+      merged.set(a.subarray(0, toCopy), offset);
+      offset += toCopy;
     }
     samplesRef.current = [];
 
+    const normalized = normalizeRms(merged);
+    const finalDurationMs = Math.min(
+      Math.round((finalLen / sampleRate) * 1000),
+      MAX_MS,
+    );
+
     let mp3Blob: Blob;
     try {
-      mp3Blob = encodePcmMonoToMp3(merged, sampleRate);
+      mp3Blob = encodePcmMonoToMp3(normalized, sampleRate);
     } catch (e) {
       setError(
         t("encodeFailed", {
@@ -198,7 +208,7 @@ export function RecordingWidget({ onChange }: Props) {
     const url = URL.createObjectURL(mp3Blob);
     setAudioUrl(url);
     setState("done");
-    onChange(mp3Blob, Math.round(accMsRef.current));
+    onChange(mp3Blob, finalDurationMs);
   }
 
   function reset() {

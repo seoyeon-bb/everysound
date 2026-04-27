@@ -14,6 +14,30 @@ function floatTo16(input: Float32Array): Int16Array {
   return out;
 }
 
+export function normalizeRms(
+  samples: Float32Array,
+  targetRms = 0.18,
+  maxGain = 8,
+): Float32Array {
+  if (samples.length === 0) return samples;
+  let sumSq = 0;
+  for (let i = 0; i < samples.length; i++) {
+    sumSq += samples[i] * samples[i];
+  }
+  const currentRms = Math.sqrt(sumSq / samples.length);
+  if (currentRms < 1e-5) return samples;
+
+  const gain = Math.min(targetRms / currentRms, maxGain);
+  if (Math.abs(gain - 1) < 0.05) return samples;
+
+  const out = new Float32Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    const v = samples[i] * gain;
+    out[i] = v > 1 ? 1 : v < -1 ? -1 : v;
+  }
+  return out;
+}
+
 export function encodePcmMonoToMp3(
   samples: Float32Array,
   sampleRate: number,

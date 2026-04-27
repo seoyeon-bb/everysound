@@ -13,6 +13,7 @@
     },
     "sort": {
       "played": "Most played",
+      "recommended": "Most recommended",
       "added": "Most added",
       "created": "Newest"
     },
