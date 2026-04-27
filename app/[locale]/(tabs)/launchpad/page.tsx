@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { LaunchpadGrid } from "@/components/launchpad/LaunchpadGrid";
 import { RecordButton } from "@/components/launchpad/RecordButton";
-import { MasterVolume } from "@/components/launchpad/MasterVolume";
 import { PostMixModal } from "@/components/launchpad/PostMixModal";
-import { useLaunchpad } from "@/hooks/useLaunchpad";
+import {
+  useLaunchpad,
+  removeFromLaunchpad,
+  swapLaunchpadPositions,
+} from "@/hooks/useLaunchpad";
 import { setMasterVolume, preload } from "@/lib/audio/engine";
 import { LaunchpadCapture } from "@/lib/audio/launchpadCapture";
 import { encodePcmStereoToMp3 } from "@/lib/audio/encoder";
@@ -16,18 +19,18 @@ const MAX_MS = 60_000;
 export default function LaunchpadPage() {
   const t = useTranslations("launchpad");
 
-  const [volume, setVolume] = useState(0.8);
   const [recording, setRecording] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [mixBlob, setMixBlob] = useState<Blob | null>(null);
   const [mixDurationMs, setMixDurationMs] = useState(0);
   const [encoding, setEncoding] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [recordError, setRecordError] = useState<string | null>(null);
 
   const startedAt = useRef<number | null>(null);
   const captureRef = useRef<LaunchpadCapture | null>(null);
 
-  const { slots, loading, error } = useLaunchpad();
+  const { slots, loading, error, refetch, deviceId } = useLaunchpad();
 
   useEffect(() => {
     const html = document.documentElement;
@@ -47,11 +50,8 @@ export default function LaunchpadPage() {
 
   useEffect(() => {
     LaunchpadCapture.ensureHowlerCtx();
+    setMasterVolume(0.85);
   }, []);
-
-  useEffect(() => {
-    setMasterVolume(volume);
-  }, [volume]);
 
   useEffect(() => {
     slots.forEach((s) => {
@@ -86,11 +86,13 @@ export default function LaunchpadPage() {
   }, []);
 
   async function startRecording() {
+    if (editMode) return;
     setRecordError(null);
     const cap = new LaunchpadCapture();
     const ok = await cap.start();
     if (!ok) {
       setRecordError(t("recordSetupFailed"));
+      window.setTimeout(() => setRecordError(null), 4000);
       return;
     }
     captureRef.current = cap;
@@ -125,12 +127,14 @@ export default function LaunchpadPage() {
           message: e instanceof Error ? e.message : String(e),
         }),
       );
+      window.setTimeout(() => setRecordError(null), 4000);
     } finally {
       setEncoding(false);
     }
   }
 
   const toggleRecord = () => {
+    if (editMode) return;
     if (recording) {
       void finalizeRecording();
     } else {
@@ -138,33 +142,59 @@ export default function LaunchpadPage() {
     }
   };
 
+  function handleLongPress() {
+    if (recording) return;
+    setEditMode(true);
+  }
+
+  async function handleRemove(position: number) {
+    if (!deviceId) return;
+    const r = await removeFromLaunchpad(deviceId, position);
+    if (r.ok) {
+      refetch();
+    } else {
+      setRecordError(t("removeFailed", { message: r.error }));
+      window.setTimeout(() => setRecordError(null), 4000);
+    }
+  }
+
+  async function handleSwap(from: number, to: number) {
+    if (!deviceId) return;
+    const r = await swapLaunchpadPositions(deviceId, from, to);
+    if (r.ok) {
+      refetch();
+    } else {
+      setRecordError(t("swapFailed", { message: r.error }));
+      window.setTimeout(() => setRecordError(null), 4000);
+    }
+  }
+
   const occupied = slots.filter((s) => s.sound).length;
 
   return (
     <>
       <header className="flex items-center justify-between px-5 pt-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-          <p className="mt-0.5 text-xs text-neutral-500">
-            {t("padCount", { occupied, total: 12 })}
-          </p>
-        </div>
-        <RecordButton
-          recording={recording}
-          elapsedMs={elapsedMs}
-          onToggle={toggleRecord}
-        />
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        {editMode ? (
+          <button
+            type="button"
+            onClick={() => setEditMode(false)}
+            className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-neutral-950 active:scale-95"
+          >
+            {t("editDone")}
+          </button>
+        ) : (
+          <RecordButton
+            recording={recording}
+            elapsedMs={elapsedMs}
+            onToggle={toggleRecord}
+          />
+        )}
       </header>
 
       <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
         {t("record.limitNotice")}
       </p>
-
-      {recordError && (
-        <div className="fixed bottom-24 left-1/2 z-50 max-w-[90%] -translate-x-1/2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-rose-500/30">
-          {recordError}
-        </div>
-      )}
 
       <div className="mt-5 px-5">
         {loading ? (
@@ -187,20 +217,32 @@ export default function LaunchpadPage() {
                 {t("emptyHint")}
               </p>
             )}
-            <LaunchpadGrid slots={slots} />
+            <LaunchpadGrid
+              slots={slots}
+              editMode={editMode}
+              onLongPress={handleLongPress}
+              onRemove={handleRemove}
+              onSwap={handleSwap}
+            />
           </>
         )}
       </div>
 
-      <div className="mt-6 px-5">
-        <MasterVolume value={volume} onChange={setVolume} />
-      </div>
+      <p className="mt-6 px-5 text-center text-xs text-neutral-500">
+        {t("padCountHint", { occupied, total: 12 })}
+      </p>
 
       {encoding && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
           <p className="rounded-full bg-neutral-900 px-4 py-2 text-sm text-neutral-200">
             {t("encoding")}
           </p>
+        </div>
+      )}
+
+      {recordError && (
+        <div className="fixed bottom-24 left-1/2 z-50 max-w-[90%] -translate-x-1/2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-rose-500/30">
+          {recordError}
         </div>
       )}
 

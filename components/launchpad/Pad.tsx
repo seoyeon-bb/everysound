@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { trigger } from "@/lib/audio/engine";
 import type { Sound } from "@/types/sound";
 
@@ -13,41 +14,131 @@ const PAD_COLORS = [
   "bg-pink-500/85 text-white",
 ];
 
+const LONG_PRESS_MS = 500;
+
 interface PadProps {
   position: number;
   sound: Sound | null;
+  editMode: boolean;
+  isDraggingThis: boolean;
+  isHoverTarget: boolean;
+  onLongPress: () => void;
+  onRemove: () => void;
+  onDragStart: () => void;
 }
 
-export function Pad({ position, sound }: PadProps) {
-  if (!sound) {
-    return (
-      <div
-        aria-label={`empty pad ${position + 1}`}
-        className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/40 text-xs font-medium text-neutral-700"
-      >
-        {position + 1}
-      </div>
-    );
+export function Pad({
+  position,
+  sound,
+  editMode,
+  isDraggingThis,
+  isHoverTarget,
+  onLongPress,
+  onRemove,
+  onDragStart,
+}: PadProps) {
+  const longPressTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    };
+  }, []);
+
+  function clearTimer() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   }
-  const color = PAD_COLORS[position % PAD_COLORS.length];
-  const playable = Boolean(sound.audio_key);
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (editMode) {
+      if (sound) {
+        e.preventDefault();
+        onDragStart();
+      }
+      return;
+    }
+    clearTimer();
+    longPressTimer.current = window.setTimeout(() => {
+      longPressTimer.current = null;
+      onLongPress();
+    }, LONG_PRESS_MS);
+  }
+
+  function handlePointerUp() {
+    if (editMode) return;
+    if (longPressTimer.current) {
+      clearTimer();
+      if (sound?.audio_key) trigger(sound.audio_key);
+    }
+  }
+
+  function handlePointerCancel() {
+    clearTimer();
+  }
+
+  const filled = sound !== null;
+  const playable = Boolean(sound?.audio_key);
+  const color = filled ? PAD_COLORS[position % PAD_COLORS.length] : "";
+
+  let containerExtras = "transition-transform";
+  if (editMode) {
+    containerExtras += " select-none touch-none";
+    if (isDraggingThis) containerExtras += " opacity-40 scale-95";
+    else if (isHoverTarget) containerExtras += " ring-4 ring-emerald-400 scale-[1.03]";
+    else if (filled) containerExtras += " animate-[pulse_1.6s_ease-in-out_infinite]";
+  }
 
   return (
-    <button
-      type="button"
-      disabled={!playable}
-      onMouseDown={() => trigger(sound.audio_key)}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        trigger(sound.audio_key);
-      }}
-      className={`flex aspect-square select-none items-center justify-center rounded-2xl px-2 py-2 text-center transition active:scale-95 ${
-        playable ? color : "cursor-not-allowed bg-neutral-800/60 text-neutral-500"
-      }`}
+    <div
+      data-pad-position={position}
+      className={`relative aspect-square ${containerExtras}`}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
-      <span className="line-clamp-3 text-sm font-semibold leading-tight">
-        {sound.title}
-      </span>
-    </button>
+      <div
+        className={`flex h-full w-full select-none items-center justify-center rounded-2xl px-2 py-2 text-center transition active:scale-95 ${
+          filled
+            ? playable
+              ? color
+              : "cursor-not-allowed bg-neutral-800/60 text-neutral-500"
+            : "border border-dashed border-neutral-800 bg-neutral-900/40 text-xs font-medium text-neutral-700"
+        }`}
+      >
+        {filled ? (
+          <span className="line-clamp-3 text-sm font-semibold leading-tight">
+            {sound!.title}
+          </span>
+        ) : (
+          <span>{position + 1}</span>
+        )}
+      </div>
+
+      {editMode && filled && !isDraggingThis && (
+        <button
+          type="button"
+          aria-label="remove from launchpad"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute -right-1.5 -top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-950 text-neutral-100 ring-2 ring-neutral-900 transition hover:bg-neutral-800"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            className="h-3 w-3"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }

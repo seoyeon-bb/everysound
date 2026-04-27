@@ -81,3 +81,20 @@ export async function removeFromLaunchpad(deviceId: string, position: number) {
   }
   return { ok: true as const };
 }
+
+export async function swapLaunchpadPositions(
+  deviceId: string,
+  from: number,
+  to: number,
+) {
+  const r = await fetch("/api/launchpad", {
+    method: "PATCH",
+    headers: { "X-Device-Id": deviceId, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to }),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}));
+    return { ok: false as const, error: data.error ?? `HTTP ${r.status}` };
+  }
+  return { ok: true as const };
+}

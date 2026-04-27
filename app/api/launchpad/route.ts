@@ -83,6 +83,41 @@ export async function POST(req: NextRequest) {
   return Response.json({ position });
 }
 
+export async function PATCH(req: NextRequest) {
+  const deviceId = req.headers.get("x-device-id");
+  if (!deviceId || !UUID_RE.test(deviceId)) {
+    return Response.json({ error: "invalid device id" }, { status: 400 });
+  }
+  const body = await req.json().catch(() => null);
+  const from = body?.from;
+  const to = body?.to;
+  if (
+    !Number.isInteger(from) ||
+    !Number.isInteger(to) ||
+    from < 0 ||
+    from >= PADS ||
+    to < 0 ||
+    to >= PADS ||
+    from === to
+  ) {
+    return Response.json({ error: "invalid positions" }, { status: 400 });
+  }
+
+  const supabase = supabaseServerAdmin();
+  if (!supabase) {
+    return Response.json({ error: "server not configured" }, { status: 503 });
+  }
+  const { error } = await supabase.rpc("swap_launchpad_positions", {
+    p_device_id: deviceId,
+    p_from: from,
+    p_to: to,
+  });
+  if (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+  return Response.json({ ok: true });
+}
+
 export async function DELETE(req: NextRequest) {
   const deviceId = req.headers.get("x-device-id");
   if (!deviceId || !UUID_RE.test(deviceId)) {
