@@ -18,10 +18,18 @@ export class LaunchpadCapture {
     return Howler.ctx ?? null;
   }
 
-  start(): boolean {
+  async start(): Promise<boolean> {
     const ctx = LaunchpadCapture.ensureHowlerCtx();
     const masterGain = (Howler as unknown as { masterGain?: GainNode }).masterGain;
     if (!ctx || !masterGain) return false;
+
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch {
+        return false;
+      }
+    }
 
     const tap = ctx.createScriptProcessor(16384, 2, 2);
     this.samplesL = [];

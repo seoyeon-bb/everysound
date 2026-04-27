@@ -85,10 +85,10 @@ export default function LaunchpadPage() {
     };
   }, []);
 
-  function startRecording() {
+  async function startRecording() {
     setRecordError(null);
     const cap = new LaunchpadCapture();
-    const ok = cap.start();
+    const ok = await cap.start();
     if (!ok) {
       setRecordError(t("recordSetupFailed"));
       return;
@@ -106,6 +106,7 @@ export default function LaunchpadPage() {
     captureRef.current = null;
     if (!data || data.left.length === 0) {
       setRecordError(t("recordEmpty"));
+      window.setTimeout(() => setRecordError(null), 4000);
       return;
     }
 
@@ -133,7 +134,7 @@ export default function LaunchpadPage() {
     if (recording) {
       void finalizeRecording();
     } else {
-      startRecording();
+      void startRecording();
     }
   };
 
@@ -160,9 +161,9 @@ export default function LaunchpadPage() {
       </p>
 
       {recordError && (
-        <p className="mt-2 mx-5 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+        <div className="fixed bottom-24 left-1/2 z-50 max-w-[90%] -translate-x-1/2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-rose-500/30">
           {recordError}
-        </p>
+        </div>
       )}
 
       <div className="mt-5 px-5">
