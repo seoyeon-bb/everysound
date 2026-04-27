@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useDeviceId } from "@/hooks/useDeviceId";
 
@@ -9,6 +9,8 @@ interface Props {
   durationMs: number;
   onClose: () => void;
 }
+
+const DISMISS_THRESHOLD = 100;
 
 export function PostMixModal({ blob, durationMs, onClose }: Props) {
   const t = useTranslations("launchpad.postMix");
@@ -21,8 +23,57 @@ export function PostMixModal({ blob, durationMs, onClose }: Props) {
   const [downloadDone, setDownloadDone] = useState(false);
   const [shareDone, setShareDone] = useState(false);
 
+  const [dragOffset, setDragOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startYRef = useRef<number | null>(null);
+
   const audioSrc = useMemo(() => URL.createObjectURL(blob), [blob]);
   useEffect(() => () => URL.revokeObjectURL(audioSrc), [audioSrc]);
+
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    function handleMove(e: PointerEvent) {
+      if (startYRef.current === null) return;
+      const delta = e.clientY - startYRef.current;
+      if (delta > 0) setDragOffset(delta);
+    }
+
+    function handleUp() {
+      setDragging(false);
+      startYRef.current = null;
+      setDragOffset((current) => {
+        if (current > DISMISS_THRESHOLD) {
+          onClose();
+          return current;
+        }
+        return 0;
+      });
+    }
+
+    document.addEventListener("pointermove", handleMove);
+    document.addEventListener("pointerup", handleUp);
+    document.addEventListener("pointercancel", handleUp);
+    return () => {
+      document.removeEventListener("pointermove", handleMove);
+      document.removeEventListener("pointerup", handleUp);
+      document.removeEventListener("pointercancel", handleUp);
+    };
+  }, [dragging, onClose]);
+
+  function handleHandlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    startYRef.current = e.clientY;
+    setDragging(true);
+  }
 
   function handleDownload() {
     const stamp = new Date()
@@ -110,11 +161,30 @@ export function PostMixModal({ blob, durationMs, onClose }: Props) {
   }
 
   const canShare = !submitting && deviceId && title.trim() && summary.trim();
+  const sheetStyle = {
+    transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+    transition: dragging ? "none" : "transform 0.2s ease-out",
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-t-2xl bg-neutral-900 p-5 pb-8 shadow-2xl">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-700" />
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={sheetStyle}
+        className="w-full max-w-md rounded-t-2xl bg-neutral-900 p-5 pb-8 shadow-2xl"
+      >
+        <div
+          onPointerDown={handleHandlePointerDown}
+          className="-mt-3 mb-3 flex h-6 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+        >
+          <div className="h-1 w-10 rounded-full bg-neutral-700" />
+        </div>
+
         <h2 className="text-lg font-bold">{t("title")}</h2>
         <p className="mt-1 text-xs text-neutral-500">
           {(durationMs / 1000).toFixed(1)}s · {(blob.size / 1024).toFixed(0)} KB
