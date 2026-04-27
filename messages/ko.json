@@ -143,6 +143,8 @@
       "all": "아직 공유된 믹스가 없어요",
       "search": "검색 결과가 없어요"
     },
+    "loading": "믹스 불러오는 중…",
+    "errorState": "믹스를 불러오지 못했어요: {message}",
     "anonymous": "익명"
   },
   "category": {

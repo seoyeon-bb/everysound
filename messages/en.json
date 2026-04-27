@@ -143,6 +143,8 @@
       "all": "No mixes shared yet",
       "search": "No search results"
     },
+    "loading": "Loading mixes…",
+    "errorState": "Failed to load mixes: {message}",
     "anonymous": "anonymous"
   },
   "category": {

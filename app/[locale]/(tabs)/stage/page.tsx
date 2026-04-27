@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { StageCard } from "@/components/stage/StageCard";
 import { StageSort, type StageSortKey } from "@/components/stage/StageSort";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { MOCK_STAGE } from "@/lib/mock/stage";
+import { useStageRecordings } from "@/hooks/useStageRecordings";
 import { searchMatches } from "@/lib/search";
 
 export default function StagePage() {
@@ -14,8 +14,10 @@ export default function StagePage() {
   const [query, setQuery] = useState("");
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
+  const { recordings: all, loading, error } = useStageRecordings();
+
   const recordings = useMemo(() => {
-    let arr = MOCK_STAGE.slice();
+    let arr = all.slice();
     if (query.trim()) {
       arr = arr.filter((r) => searchMatches(query, r.title, r.summary));
     }
@@ -25,7 +27,7 @@ export default function StagePage() {
       return b.created_at.localeCompare(a.created_at);
     });
     return arr;
-  }, [sort, query]);
+  }, [all, sort, query]);
 
   const toggleLike = (id: string) => {
     setLikedIds((prev) => {
@@ -56,7 +58,15 @@ export default function StagePage() {
       </div>
 
       <ul className="mt-3">
-        {recordings.length === 0 ? (
+        {loading ? (
+          <li className="px-5 py-16 text-center text-sm text-neutral-500">
+            {t("loading")}
+          </li>
+        ) : error ? (
+          <li className="px-5 py-16 text-center text-sm text-rose-400">
+            {t("errorState", { message: error })}
+          </li>
+        ) : recordings.length === 0 ? (
           <li className="px-5 py-16 text-center text-sm text-neutral-500">
             {query.trim() ? t("empty.search") : t("empty.all")}
           </li>

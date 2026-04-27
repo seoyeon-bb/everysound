@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { play } from "@/lib/audio/engine";
 import type { StageRecording } from "@/types/sound";
 
 function fmtDuration(ms: number) {
@@ -13,12 +14,12 @@ function fmtDuration(ms: number) {
 interface Props {
   recording: StageRecording;
   liked?: boolean;
-  onPlay?: () => void;
   onToggleLike?: () => void;
 }
 
-export function StageCard({ recording, liked = false, onPlay, onToggleLike }: Props) {
+export function StageCard({ recording, liked = false, onToggleLike }: Props) {
   const t = useTranslations("stage");
+  const playable = Boolean(recording.audio_key);
 
   return (
     <article className="border-b border-neutral-900 px-5 py-4">
@@ -26,8 +27,13 @@ export function StageCard({ recording, liked = false, onPlay, onToggleLike }: Pr
         <button
           type="button"
           aria-label={t("actions.play")}
-          onClick={onPlay}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-neutral-950 transition active:scale-95"
+          onClick={() => play(recording.audio_key)}
+          disabled={!playable}
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition active:scale-95 ${
+            playable
+              ? "bg-emerald-500 text-neutral-950"
+              : "cursor-not-allowed bg-neutral-800 text-neutral-600"
+          }`}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-5 w-5">
             <path d="M8 5v14l11-7z" />
@@ -66,7 +72,7 @@ export function StageCard({ recording, liked = false, onPlay, onToggleLike }: Pr
             <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
           </svg>
           <span className="text-[11px] font-medium tabular-nums">
-            {recording.like_count}
+            {recording.like_count + (liked ? 1 : 0)}
           </span>
         </button>
       </div>
