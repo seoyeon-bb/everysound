@@ -8,13 +8,12 @@ import { CategoryPicker } from "@/components/upload/CategoryPicker";
 import { TagInput } from "@/components/upload/TagInput";
 import { RecordingWidget } from "@/components/upload/RecordingWidget";
 import { Field } from "@/components/upload/Field";
-import { encodeToMp3 } from "@/lib/audio/encoder";
 import type { CategoryKey } from "@/lib/categories";
 
 const TEXT_INPUT =
   "w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500/50 focus:outline-none";
 
-type Phase = "idle" | "encoding" | "uploading" | "saving";
+type Phase = "idle" | "uploading" | "saving";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -50,20 +49,6 @@ export default function UploadPage() {
     if (!canSubmit || !audioBlob || !category) return;
     setError(null);
 
-    let mp3Blob: Blob;
-    try {
-      setPhase("encoding");
-      mp3Blob = await encodeToMp3(audioBlob);
-    } catch (e) {
-      setPhase("idle");
-      setError(
-        t("errors.encode", {
-          message: e instanceof Error ? e.message : String(e),
-        }),
-      );
-      return;
-    }
-
     try {
       const soundId = crypto.randomUUID();
       const fileName = `${soundId}.mp3`;
@@ -77,8 +62,8 @@ export default function UploadPage() {
         },
         body: JSON.stringify({
           fileName,
-          contentType: "audio/mpeg",
-          contentLength: mp3Blob.size,
+          contentType: audioBlob.type || "audio/mpeg",
+          contentLength: audioBlob.size,
         }),
       });
       if (!r1.ok) {
@@ -89,8 +74,8 @@ export default function UploadPage() {
 
       const r2 = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": "audio/mpeg" },
-        body: mp3Blob,
+        headers: { "Content-Type": audioBlob.type || "audio/mpeg" },
+        body: audioBlob,
       });
       if (!r2.ok) {
         throw new Error(`upload HTTP ${r2.status}`);
@@ -129,7 +114,6 @@ export default function UploadPage() {
   }
 
   function submitLabel() {
-    if (phase === "encoding") return t("phases.encoding");
     if (phase === "uploading") return t("phases.uploading");
     if (phase === "saving") return t("phases.saving");
     return t("submit");

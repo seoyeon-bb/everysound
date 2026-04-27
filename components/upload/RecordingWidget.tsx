@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { encodePcmMonoToMp3 } from "@/lib/audio/encoder";
 
 const MAX_MS = 3000;
+const BUFFER_SIZE = 4096;
 
 type State = "ready" | "recording" | "paused" | "done";
 
@@ -18,21 +20,30 @@ export function RecordingWidget({ onChange }: Props) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const recorderRef = useRef<MediaRecorder | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const samplesRef = useRef<Float32Array[]>([]);
+  const isRecordingRef = useRef(false);
   const accMsRef = useRef(0);
   const segStartRef = useRef<number | null>(null);
   const tickerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      try {
+        processorRef.current?.disconnect();
+      } catch {}
+      try {
+        sourceRef.current?.disconnect();
+      } catch {}
+      streamRef.current?.getTracks().forEach((tr) => tr.stop());
+      if (ctxRef.current) {
         try {
-          recorderRef.current.stop();
+          void ctxRef.current.close();
         } catch {}
       }
-      streamRef.current?.getTracks().forEach((tr) => tr.stop());
       if (tickerRef.current) clearInterval(tickerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
@@ -66,7 +77,7 @@ export function RecordingWidget({ onChange }: Props) {
     onChange(null, 0);
     accMsRef.current = 0;
     setDisplayedMs(0);
-    chunksRef.current = [];
+    samplesRef.current = [];
 
     let stream: MediaStream;
     try {
@@ -77,32 +88,41 @@ export function RecordingWidget({ onChange }: Props) {
     }
     streamRef.current = stream;
 
-    const rec = new MediaRecorder(stream);
-    rec.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
-    };
-    rec.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: rec.mimeType });
-      const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
-      const finalDur = Math.min(accMsRef.current, MAX_MS);
-      streamRef.current?.getTracks().forEach((tr) => tr.stop());
-      streamRef.current = null;
-      stopTicker();
-      setState("done");
-      onChange(blob, finalDur);
-    };
-    recorderRef.current = rec;
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    const ctx = new Ctx();
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch {}
+    }
+    ctxRef.current = ctx;
 
-    rec.start();
+    const source = ctx.createMediaStreamSource(stream);
+    sourceRef.current = source;
+
+    const processor = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
+    processorRef.current = processor;
+    isRecordingRef.current = true;
+
+    processor.onaudioprocess = (e) => {
+      if (!isRecordingRef.current) return;
+      const input = e.inputBuffer.getChannelData(0);
+      samplesRef.current.push(new Float32Array(input));
+    };
+
+    source.connect(processor);
+    processor.connect(ctx.destination);
+
     setState("recording");
     startTicker();
   }
 
   function pause() {
-    const rec = recorderRef.current;
-    if (!rec || rec.state !== "recording") return;
-    rec.pause();
+    if (state !== "recording") return;
+    isRecordingRef.current = false;
     const segStart = segStartRef.current;
     if (segStart != null) {
       accMsRef.current += performance.now() - segStart;
@@ -114,23 +134,71 @@ export function RecordingWidget({ onChange }: Props) {
   }
 
   function resume() {
-    const rec = recorderRef.current;
-    if (!rec || rec.state !== "paused") return;
-    rec.resume();
+    if (state !== "paused") return;
+    isRecordingRef.current = true;
     setState("recording");
     startTicker();
   }
 
   function complete() {
-    const rec = recorderRef.current;
-    if (!rec || rec.state === "inactive") return;
+    if (state === "ready" || state === "done") return;
+    isRecordingRef.current = false;
     const segStart = segStartRef.current;
     if (segStart != null) {
       accMsRef.current += performance.now() - segStart;
       segStartRef.current = null;
     }
     stopTicker();
-    rec.stop();
+
+    const ctx = ctxRef.current;
+    const sampleRate = ctx?.sampleRate ?? 44100;
+
+    try {
+      processorRef.current?.disconnect();
+    } catch {}
+    try {
+      sourceRef.current?.disconnect();
+    } catch {}
+    streamRef.current?.getTracks().forEach((tr) => tr.stop());
+    streamRef.current = null;
+    if (ctx) {
+      try {
+        void ctx.close();
+      } catch {}
+    }
+    ctxRef.current = null;
+
+    const totalLen = samplesRef.current.reduce((s, a) => s + a.length, 0);
+    if (totalLen === 0) {
+      setError(t("empty"));
+      setState("ready");
+      return;
+    }
+    const merged = new Float32Array(totalLen);
+    let offset = 0;
+    for (const a of samplesRef.current) {
+      merged.set(a, offset);
+      offset += a.length;
+    }
+    samplesRef.current = [];
+
+    let mp3Blob: Blob;
+    try {
+      mp3Blob = encodePcmMonoToMp3(merged, sampleRate);
+    } catch (e) {
+      setError(
+        t("encodeFailed", {
+          message: e instanceof Error ? e.message : String(e),
+        }),
+      );
+      setState("ready");
+      return;
+    }
+
+    const url = URL.createObjectURL(mp3Blob);
+    setAudioUrl(url);
+    setState("done");
+    onChange(mp3Blob, accMsRef.current);
   }
 
   function reset() {
@@ -140,7 +208,7 @@ export function RecordingWidget({ onChange }: Props) {
     }
     accMsRef.current = 0;
     setDisplayedMs(0);
-    chunksRef.current = [];
+    samplesRef.current = [];
     setError(null);
     onChange(null, 0);
     setState("ready");
@@ -156,7 +224,11 @@ export function RecordingWidget({ onChange }: Props) {
   }
 
   const primaryLabel =
-    state === "recording" ? t("pause") : state === "paused" ? t("resume") : t("start");
+    state === "recording"
+      ? t("pause")
+      : state === "paused"
+        ? t("resume")
+        : t("start");
   const primaryStyle =
     state === "recording"
       ? "bg-neutral-800 text-neutral-100"

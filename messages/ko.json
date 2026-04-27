@@ -46,12 +46,8 @@
     "submit": "완료",
     "submitting": "업로드 중…",
     "phases": {
-      "encoding": "인코딩 중…",
       "uploading": "업로드 중…",
       "saving": "저장 중…"
-    },
-    "errors": {
-      "encode": "오디오 인코딩 실패: {message}"
     },
     "fields": {
       "title": "제목",
@@ -80,6 +76,8 @@
       "recording": "녹음 중",
       "paused": "일시정지",
       "retry": "다시 녹음",
+      "empty": "녹음된 소리가 없어요. 다시 시도해주세요.",
+      "encodeFailed": "오디오 인코딩 실패: {message}",
       "micDenied": "마이크 권한이 거부되었어요. 브라우저 설정에서 허용해주세요."
     }
   },

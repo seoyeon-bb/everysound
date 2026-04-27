@@ -14,35 +14,18 @@ function floatTo16(input: Float32Array): Int16Array {
   return out;
 }
 
-export async function encodeToMp3(input: Blob): Promise<Blob> {
-  const ctx = new (window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-  try {
-    const arrayBuffer = await input.arrayBuffer();
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-
-    const channels = Math.min(2, audioBuffer.numberOfChannels);
-    const sampleRate = audioBuffer.sampleRate;
-    const left = floatTo16(audioBuffer.getChannelData(0));
-    const right =
-      channels > 1 ? floatTo16(audioBuffer.getChannelData(1)) : null;
-
-    const encoder = new Mp3Encoder(channels, sampleRate, KBPS);
-    const out: Uint8Array[] = [];
-
-    for (let i = 0; i < left.length; i += FRAME) {
-      const lc = left.subarray(i, i + FRAME);
-      const buf =
-        right !== null
-          ? encoder.encodeBuffer(lc, right.subarray(i, i + FRAME))
-          : encoder.encodeBuffer(lc);
-      if (buf.length > 0) out.push(buf);
-    }
-    const tail = encoder.flush();
-    if (tail.length > 0) out.push(tail);
-
-    return new Blob(out as BlobPart[], { type: "audio/mpeg" });
-  } finally {
-    void ctx.close();
+export function encodePcmMonoToMp3(
+  samples: Float32Array,
+  sampleRate: number,
+): Blob {
+  const samples16 = floatTo16(samples);
+  const encoder = new Mp3Encoder(1, sampleRate, KBPS);
+  const out: Uint8Array[] = [];
+  for (let i = 0; i < samples16.length; i += FRAME) {
+    const buf = encoder.encodeBuffer(samples16.subarray(i, i + FRAME));
+    if (buf.length > 0) out.push(buf);
   }
+  const tail = encoder.flush();
+  if (tail.length > 0) out.push(tail);
+  return new Blob(out as BlobPart[], { type: "audio/mpeg" });
 }

@@ -46,12 +46,8 @@
     "submit": "Done",
     "submitting": "Uploading…",
     "phases": {
-      "encoding": "Encoding…",
       "uploading": "Uploading…",
       "saving": "Saving…"
-    },
-    "errors": {
-      "encode": "Audio encode failed: {message}"
     },
     "fields": {
       "title": "Title",
@@ -80,6 +76,8 @@
       "recording": "Recording",
       "paused": "Paused",
       "retry": "Re-record",
+      "empty": "Nothing was recorded. Please try again.",
+      "encodeFailed": "Audio encoding failed: {message}",
       "micDenied": "Microphone permission denied. Please allow it in browser settings."
     }
   },
