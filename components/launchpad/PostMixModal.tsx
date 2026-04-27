@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useDeviceId } from "@/hooks/useDeviceId";
 
@@ -21,27 +21,36 @@ export function PostMixModal({ blob, durationMs, onClose }: Props) {
   const [downloadDone, setDownloadDone] = useState(false);
   const [shareDone, setShareDone] = useState(false);
 
+  const audioSrc = useMemo(() => URL.createObjectURL(blob), [blob]);
+  useEffect(() => () => URL.revokeObjectURL(audioSrc), [audioSrc]);
+
   function handleDownload() {
-    const url = URL.createObjectURL(blob);
     const stamp = new Date()
       .toISOString()
       .slice(0, 19)
       .replace(/[T:]/g, "-");
     const a = document.createElement("a");
-    a.href = url;
+    a.href = audioSrc;
     a.download = `everysound-mix-${stamp}.mp3`;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
     setDownloadDone(true);
   }
 
   async function handleShare() {
-    if (!title.trim() || !summary.trim() || !deviceId) return;
     setSubmitting(true);
     setError(null);
     try {
+      if (!deviceId) {
+        throw new Error("device_id not ready, please retry in a moment");
+      }
+      const t1 = title.trim();
+      const s1 = summary.trim();
+      if (!t1 || !s1) {
+        throw new Error("title and summary required");
+      }
+
       const recId = crypto.randomUUID();
       const fileName = `${recId}.mp3`;
 
@@ -78,8 +87,8 @@ export function PostMixModal({ blob, durationMs, onClose }: Props) {
         },
         body: JSON.stringify({
           id: recId,
-          title: title.trim(),
-          summary: summary.trim(),
+          title: t1,
+          summary: s1,
           audio_key: key,
           duration_ms: Math.round(durationMs),
           uploader_nickname: nickname || null,
@@ -92,11 +101,15 @@ export function PostMixModal({ blob, durationMs, onClose }: Props) {
 
       setShareDone(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[PostMixModal.handleShare]", e);
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
   }
+
+  const canShare = !submitting && deviceId && title.trim() && summary.trim();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
@@ -107,11 +120,7 @@ export function PostMixModal({ blob, durationMs, onClose }: Props) {
           {(durationMs / 1000).toFixed(1)}s · {(blob.size / 1024).toFixed(0)} KB
         </p>
 
-        <audio
-          src={URL.createObjectURL(blob)}
-          controls
-          className="mt-3 w-full"
-        />
+        <audio src={audioSrc} controls className="mt-3 w-full" />
 
         {error && (
           <p className="mt-3 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
@@ -163,11 +172,11 @@ export function PostMixModal({ blob, durationMs, onClose }: Props) {
               <button
                 type="button"
                 onClick={handleShare}
-                disabled={submitting || !title.trim() || !summary.trim()}
+                disabled={!canShare}
                 className={`mt-3 w-full rounded-xl py-2.5 text-sm font-semibold transition ${
-                  submitting || !title.trim() || !summary.trim()
-                    ? "cursor-not-allowed bg-neutral-800 text-neutral-600"
-                    : "bg-emerald-500 text-neutral-950 active:scale-[0.98]"
+                  canShare
+                    ? "bg-emerald-500 text-neutral-950 active:scale-[0.98]"
+                    : "cursor-not-allowed bg-neutral-800 text-neutral-600"
                 }`}
               >
                 {submitting ? t("uploading") : t("share")}
