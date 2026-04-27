@@ -1,11 +1,14 @@
 -- Atomic swap/move for launchpad positions without bumping launchpad_add_count.
 -- Uses session_replication_role = replica to skip the per-row INSERT trigger
 -- that increments sounds.launchpad_add_count.
+--
+-- Signature uses integer (not smallint) so Supabase JS rpc(...) auto-resolves
+-- to this function via PostgREST's schema cache.
 
 create or replace function public.swap_launchpad_positions(
   p_device_id uuid,
-  p_from smallint,
-  p_to smallint
+  p_from integer,
+  p_to integer
 ) returns void
 language plpgsql
 security definer
@@ -47,3 +50,6 @@ begin
   end if;
 end;
 $$;
+
+-- If a smallint version was created earlier, drop it so PostgREST resolves to the integer one
+drop function if exists public.swap_launchpad_positions(uuid, smallint, smallint);
