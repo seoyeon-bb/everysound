@@ -10,5 +10,11 @@
   },
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "R2_BUCKET": "everysounds-audio",
+    "R2_PUBLIC_URL": "https://pub-343e13a4d21148d69387dd0a7b2bda45.r2.dev",
+    "R2_ACCOUNT_ID": "ddfea89e225a1f5d6e5c80c3e90fe8c3",
+    "R2_S3_ENDPOINT": "https://ddfea89e225a1f5d6e5c80c3e90fe8c3.r2.cloudflarestorage.com"
   }
 }
