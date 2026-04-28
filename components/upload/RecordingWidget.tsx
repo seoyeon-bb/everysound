@@ -86,17 +86,21 @@ export function RecordingWidget({ onChange }: Props) {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: false,
-          channelCount: 1,
-          sampleRate: 44100,
         },
       });
     } catch (err) {
-      const denied =
-        err instanceof Error &&
-        (err.name === "NotAllowedError" ||
-          err.name === "PermissionDeniedError" ||
-          err.name === "SecurityError");
-      setError(denied ? t("micDeniedDetail") : t("micUnavailable"));
+      const name = err instanceof Error ? err.name : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
+        setError(t("micDeniedDetail"));
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        setError(t("micNotFound"));
+      } else if (name === "NotReadableError" || name === "TrackStartError") {
+        setError(t("micBusy"));
+      } else if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
+        setError(t("micUnavailable"));
+      } else {
+        setError(t("micUnavailable"));
+      }
       return;
     }
     streamRef.current = stream;
