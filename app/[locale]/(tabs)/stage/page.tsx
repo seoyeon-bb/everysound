@@ -41,9 +41,12 @@ export default function StagePage() {
   return (
     <>
       <header className="px-5 pt-6">
-        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-        <p className="mt-1 text-sm text-neutral-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
       </header>
+
+      <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
+        {t("subtitle")}
+      </p>
 
       <div className="mt-4 px-5">
         <SearchInput

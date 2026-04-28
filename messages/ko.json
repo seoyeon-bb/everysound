@@ -6,6 +6,7 @@
   },
   "archive": {
     "title": "아카이브",
+    "guideline": "사운드를 듣고 마음에 들면 런치패드에 추가해보세요",
     "searchPlaceholder": "제목·요약·카테고리로 검색",
     "tabs": {
       "all": "전체",
