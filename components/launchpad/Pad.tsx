@@ -103,7 +103,6 @@ export function Pad({
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
-      onPointerLeave={editMode ? undefined : handlePointerCancel}
     >
       <div
         className={`flex h-full w-full select-none items-center justify-center rounded-2xl px-2 py-2 text-center transition active:scale-95 ${
