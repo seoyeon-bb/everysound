@@ -255,7 +255,7 @@ export function RecordingWidget({ onChange }: Props) {
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-4">
       {error && (
-        <p className="mb-3 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+        <p className="mb-3 whitespace-pre-line rounded-lg bg-rose-500/10 px-3 py-2 text-xs leading-relaxed text-rose-300">
           {error}
         </p>
       )}
