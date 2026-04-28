@@ -4,6 +4,19 @@ import { Howl, Howler } from "howler";
 
 const cache = new Map<string, Howl>();
 
+let audioSessionConfigured = false;
+function configureAudioSession() {
+  if (audioSessionConfigured) return;
+  try {
+    const session = (navigator as unknown as { audioSession?: { type: string } })
+      .audioSession;
+    if (session) {
+      session.type = "playback";
+      audioSessionConfigured = true;
+    }
+  } catch {}
+}
+
 function audioUrl(audioKey: string): string | null {
   const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
   if (!base) return null;
@@ -11,6 +24,7 @@ function audioUrl(audioKey: string): string | null {
 }
 
 export function preload(audioKey: string): Howl | null {
+  configureAudioSession();
   if (cache.has(audioKey)) return cache.get(audioKey)!;
   const url = audioUrl(audioKey);
   if (!url) return null;
@@ -47,6 +61,7 @@ export function setMasterVolume(value: number): void {
 }
 
 export function unlock(): void {
+  configureAudioSession();
   const ctx = Howler.ctx;
   if (ctx && ctx.state === "suspended") {
     void ctx.resume();
