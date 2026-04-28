@@ -10,7 +10,8 @@ import {
   removeFromLaunchpad,
   swapLaunchpadPositions,
 } from "@/hooks/useLaunchpad";
-import { setMasterVolume, preload } from "@/lib/audio/engine";
+import { setMasterVolume } from "@/lib/audio/engine";
+import { preloadPad } from "@/lib/audio/padEngine";
 import { LaunchpadCapture } from "@/lib/audio/launchpadCapture";
 import { encodePcmStereoToMp3 } from "@/lib/audio/encoder";
 
@@ -55,7 +56,7 @@ export default function LaunchpadPage() {
 
   useEffect(() => {
     slots.forEach((s) => {
-      if (s.sound?.audio_key) preload(s.sound.audio_key);
+      if (s.sound?.audio_key) void preloadPad(s.sound.audio_key);
     });
   }, [slots]);
 

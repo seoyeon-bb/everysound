@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { startSustained, stopSustained, type SoundHandle } from "@/lib/audio/engine";
+import {
+  startPadSustained,
+  stopPadSustained,
+  type PadHandle,
+} from "@/lib/audio/padEngine";
 import type { Sound } from "@/types/sound";
 
 const PAD_COLORS = [
@@ -33,11 +37,11 @@ export function Pad({
   onRemove,
   onDragStart,
 }: PadProps) {
-  const handleRef = useRef<SoundHandle | null>(null);
+  const handleRef = useRef<PadHandle | null>(null);
 
   useEffect(() => {
     return () => {
-      stopSustained(handleRef.current);
+      stopPadSustained(handleRef.current);
       handleRef.current = null;
     };
   }, []);
@@ -58,13 +62,13 @@ export function Pad({
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {}
-    stopSustained(handleRef.current);
-    handleRef.current = startSustained(sound.audio_key);
+    stopPadSustained(handleRef.current);
+    handleRef.current = startPadSustained(sound.audio_key);
   }
 
   function endSustain() {
     if (handleRef.current) {
-      stopSustained(handleRef.current);
+      stopPadSustained(handleRef.current);
       handleRef.current = null;
     }
   }
