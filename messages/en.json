@@ -6,6 +6,7 @@
   },
   "archive": {
     "title": "Archive",
+    "guideline": "Listen and add sounds you like to your launchpad",
     "searchPlaceholder": "Search title · summary · category",
     "tabs": {
       "all": "All",
