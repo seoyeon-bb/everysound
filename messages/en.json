@@ -77,7 +77,9 @@
       "retry": "Re-record",
       "empty": "Nothing was recorded. Please try again.",
       "encodeFailed": "Audio encoding failed: {message}",
-      "micDenied": "Microphone permission denied. Please allow it in browser settings."
+      "micDenied": "Microphone permission denied. Please allow it in browser settings.",
+      "micDeniedDetail": "Microphone access is blocked. Browsers don't allow JS to re-prompt for security.\n• iOS Safari: Settings > Safari > Microphone > allow this site\n• Mac Safari: Safari > Settings > Websites > Microphone\n• Chrome: lock icon 🔒 > Site settings > Microphone\nAllow it and refresh, then try recording again.",
+      "micUnavailable": "Microphone unavailable. Check that no other app is using it and try again."
     }
   },
   "detail": {

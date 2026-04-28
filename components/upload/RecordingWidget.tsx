@@ -90,8 +90,13 @@ export function RecordingWidget({ onChange }: Props) {
           sampleRate: 44100,
         },
       });
-    } catch {
-      setError(t("micDenied"));
+    } catch (err) {
+      const denied =
+        err instanceof Error &&
+        (err.name === "NotAllowedError" ||
+          err.name === "PermissionDeniedError" ||
+          err.name === "SecurityError");
+      setError(denied ? t("micDeniedDetail") : t("micUnavailable"));
       return;
     }
     streamRef.current = stream;
