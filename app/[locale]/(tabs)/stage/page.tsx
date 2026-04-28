@@ -6,6 +6,7 @@ import { StageCard } from "@/components/stage/StageCard";
 import { StageSort, type StageSortKey } from "@/components/stage/StageSort";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { useStageRecordings } from "@/hooks/useStageRecordings";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { searchMatches } from "@/lib/search";
 
 export default function StagePage() {
@@ -15,6 +16,7 @@ export default function StagePage() {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   const { recordings: all, loading, error } = useStageRecordings();
+  const headerVisible = useScrollDirection();
 
   const recordings = useMemo(() => {
     let arr = all.slice();
@@ -40,27 +42,35 @@ export default function StagePage() {
 
   return (
     <>
-      <header className="px-5 pt-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-      </header>
+      <div className="sticky top-0 z-30 bg-neutral-950">
+        <div
+          className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
+            headerVisible ? "max-h-[280px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <header className="px-5 pt-6">
+            <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+          </header>
 
-      <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
-        {t("subtitle")}
-      </p>
+          <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
+            {t("subtitle")}
+          </p>
 
-      <div className="mt-4 px-5">
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          placeholder={t("searchPlaceholder")}
-        />
+          <div className="mt-4 px-5">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder={t("searchPlaceholder")}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end px-5 py-3">
+          <StageSort active={sort} onChange={setSort} />
+        </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-end px-5">
-        <StageSort active={sort} onChange={setSort} />
-      </div>
-
-      <ul className="mt-3">
+      <ul>
         {loading ? (
           <li className="px-5 py-16 text-center text-sm text-neutral-500">
             {t("loading")}

@@ -12,6 +12,7 @@ import { useSounds } from "@/hooks/useSounds";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { addToLaunchpad } from "@/hooks/useLaunchpad";
 import { searchMatches } from "@/lib/search";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
 import type { Sound } from "@/types/sound";
 
 export default function ArchivePage() {
@@ -23,6 +24,7 @@ export default function ArchivePage() {
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const { deviceId } = useDeviceId();
   const { sounds: allSounds, loading, error } = useSounds();
+  const headerVisible = useScrollDirection();
 
   const sounds = useMemo(() => {
     let arr = allSounds.slice();
@@ -65,31 +67,39 @@ export default function ArchivePage() {
 
   return (
     <>
-      <header className="px-5 pt-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-      </header>
+      <div className="sticky top-0 z-30 bg-neutral-950">
+        <div
+          className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
+            headerVisible ? "max-h-[280px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <header className="px-5 pt-6">
+            <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+          </header>
 
-      <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
-        {t("guideline")}
-      </p>
+          <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
+            {t("guideline")}
+          </p>
 
-      <div className="mt-4 px-5">
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          placeholder={t("searchPlaceholder")}
-        />
+          <div className="mt-4 px-5">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder={t("searchPlaceholder")}
+            />
+          </div>
+        </div>
+
+        <div className="px-5 pt-3">
+          <ArchiveTabs active={tab} onChange={setTab} />
+        </div>
+
+        <div className="flex items-center justify-end px-5 py-3">
+          <ArchiveSort active={sort} onChange={setSort} />
+        </div>
       </div>
 
-      <div className="mt-3 px-5">
-        <ArchiveTabs active={tab} onChange={setTab} />
-      </div>
-
-      <div className="mt-3 flex items-center justify-end px-5">
-        <ArchiveSort active={sort} onChange={setSort} />
-      </div>
-
-      <ul className="mt-3">
+      <ul>
         {loading ? (
           <li className="px-5 py-16 text-center text-sm text-neutral-500">
             {t("loading")}
