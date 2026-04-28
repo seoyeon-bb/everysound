@@ -7,18 +7,11 @@ import type { LaunchpadSlot } from "@/hooks/useLaunchpad";
 interface Props {
   slots: LaunchpadSlot[];
   editMode: boolean;
-  onLongPress: () => void;
   onRemove: (position: number) => void;
   onSwap: (from: number, to: number) => void;
 }
 
-export function LaunchpadGrid({
-  slots,
-  editMode,
-  onLongPress,
-  onRemove,
-  onSwap,
-}: Props) {
+export function LaunchpadGrid({ slots, editMode, onRemove, onSwap }: Props) {
   const [draggingFrom, setDraggingFrom] = useState<number | null>(null);
   const [hoverTarget, setHoverTarget] = useState<number | null>(null);
 
@@ -79,7 +72,6 @@ export function LaunchpadGrid({
           isHoverTarget={
             editMode && draggingFrom !== null && hoverTarget === slot.position
           }
-          onLongPress={onLongPress}
           onRemove={() => onRemove(slot.position)}
           onDragStart={() => setDraggingFrom(slot.position)}
         />

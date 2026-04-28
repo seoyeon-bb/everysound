@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { trigger } from "@/lib/audio/engine";
+import { startSustained, stopSustained, type SoundHandle } from "@/lib/audio/engine";
 import type { Sound } from "@/types/sound";
 
 const PAD_COLORS = [
@@ -14,15 +14,12 @@ const PAD_COLORS = [
   "bg-pink-500/85 text-white",
 ];
 
-const LONG_PRESS_MS = 500;
-
 interface PadProps {
   position: number;
   sound: Sound | null;
   editMode: boolean;
   isDraggingThis: boolean;
   isHoverTarget: boolean;
-  onLongPress: () => void;
   onRemove: () => void;
   onDragStart: () => void;
 }
@@ -33,50 +30,52 @@ export function Pad({
   editMode,
   isDraggingThis,
   isHoverTarget,
-  onLongPress,
   onRemove,
   onDragStart,
 }: PadProps) {
-  const longPressTimer = useRef<number | null>(null);
+  const handleRef = useRef<SoundHandle | null>(null);
 
   useEffect(() => {
     return () => {
-      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      stopSustained(handleRef.current);
+      handleRef.current = null;
     };
   }, []);
-
-  function clearTimer() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (editMode) {
       if (sound) {
         e.preventDefault();
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {}
         onDragStart();
       }
       return;
     }
-    clearTimer();
-    longPressTimer.current = window.setTimeout(() => {
-      longPressTimer.current = null;
-      onLongPress();
-    }, LONG_PRESS_MS);
+    if (!sound?.audio_key) return;
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    stopSustained(handleRef.current);
+    handleRef.current = startSustained(sound.audio_key);
+  }
+
+  function endSustain() {
+    if (handleRef.current) {
+      stopSustained(handleRef.current);
+      handleRef.current = null;
+    }
   }
 
   function handlePointerUp() {
     if (editMode) return;
-    if (longPressTimer.current) {
-      clearTimer();
-      if (sound?.audio_key) trigger(sound.audio_key);
-    }
+    endSustain();
   }
 
   function handlePointerCancel() {
-    clearTimer();
+    endSustain();
   }
 
   const filled = sound !== null;
@@ -89,6 +88,8 @@ export function Pad({
     if (isDraggingThis) containerExtras += " opacity-40 scale-95";
     else if (isHoverTarget) containerExtras += " ring-4 ring-emerald-400 scale-[1.03]";
     else if (filled) containerExtras += " animate-[pulse_1.6s_ease-in-out_infinite]";
+  } else {
+    containerExtras += " select-none touch-none";
   }
 
   return (
@@ -98,6 +99,7 @@ export function Pad({
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onPointerLeave={editMode ? undefined : handlePointerCancel}
     >
       <div
         className={`flex h-full w-full select-none items-center justify-center rounded-2xl px-2 py-2 text-center transition active:scale-95 ${

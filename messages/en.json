@@ -94,10 +94,11 @@
   },
   "launchpad": {
     "title": "Launchpad",
-    "padCountHint": "{occupied}/{total} pads · long-press a pad to edit or move",
+    "padCountHint": "{occupied}/{total} pads · hold a pad to sustain (loops). Use the Edit button to rearrange.",
     "emptyHint": "Tap \"Add\" on a sound in the Archive to fill a pad",
     "error": "Failed to load launchpad: {message}",
     "encoding": "Encoding mix…",
+    "editEnter": "Edit",
     "editDone": "Done",
     "removeFailed": "Remove failed: {message}",
     "swapFailed": "Move failed: {message}",

@@ -94,10 +94,11 @@
   },
   "launchpad": {
     "title": "런치패드",
-    "padCountHint": "{occupied}/{total} 패드, 길게 클릭 시 수정/위치 이동 가능합니다",
+    "padCountHint": "{occupied}/{total} 패드 · 길게 누르면 사운드 sustain (loop), 편집은 우상단 버튼",
     "emptyHint": "아카이브에서 사운드 \"추가\" 버튼을 눌러 패드에 등록해보세요",
     "error": "런치패드를 불러오지 못했어요: {message}",
     "encoding": "믹스 인코딩 중…",
+    "editEnter": "편집",
     "editDone": "완료",
     "removeFailed": "제거 실패: {message}",
     "swapFailed": "이동 실패: {message}",

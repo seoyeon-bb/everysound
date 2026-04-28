@@ -52,6 +52,30 @@ export function trigger(audioKey: string | null | undefined): void {
   howl.play();
 }
 
+export interface SoundHandle {
+  howl: Howl;
+  id: number;
+}
+
+export function startSustained(
+  audioKey: string | null | undefined,
+): SoundHandle | null {
+  configureAudioSession();
+  if (!audioKey) return null;
+  const howl = preload(audioKey);
+  if (!howl) return null;
+  const id = howl.play();
+  howl.loop(true, id);
+  return { howl, id };
+}
+
+export function stopSustained(handle: SoundHandle | null | undefined): void {
+  if (!handle) return;
+  try {
+    handle.howl.stop(handle.id);
+  } catch {}
+}
+
 export function stopAll(): void {
   cache.forEach((h) => h.stop());
 }

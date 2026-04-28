@@ -142,11 +142,6 @@ export default function LaunchpadPage() {
     }
   };
 
-  function handleLongPress() {
-    if (recording) return;
-    setEditMode(true);
-  }
-
   async function handleRemove(position: number) {
     if (!deviceId) return;
     const r = await removeFromLaunchpad(deviceId, position);
@@ -175,21 +170,38 @@ export default function LaunchpadPage() {
     <>
       <header className="flex items-center justify-between px-5 pt-6">
         <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-        {editMode ? (
-          <button
-            type="button"
-            onClick={() => setEditMode(false)}
-            className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-neutral-950 active:scale-95"
-          >
-            {t("editDone")}
-          </button>
-        ) : (
-          <RecordButton
-            recording={recording}
-            elapsedMs={elapsedMs}
-            onToggle={toggleRecord}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {editMode ? (
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-neutral-950 active:scale-95"
+            >
+              {t("editDone")}
+            </button>
+          ) : recording ? (
+            <RecordButton
+              recording={recording}
+              elapsedMs={elapsedMs}
+              onToggle={toggleRecord}
+            />
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditMode(true)}
+                className="rounded-full border border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-200 transition hover:bg-neutral-800 active:scale-95"
+              >
+                {t("editEnter")}
+              </button>
+              <RecordButton
+                recording={recording}
+                elapsedMs={elapsedMs}
+                onToggle={toggleRecord}
+              />
+            </>
+          )}
+        </div>
       </header>
 
       <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
@@ -220,7 +232,6 @@ export default function LaunchpadPage() {
             <LaunchpadGrid
               slots={slots}
               editMode={editMode}
-              onLongPress={handleLongPress}
               onRemove={handleRemove}
               onSwap={handleSwap}
             />
