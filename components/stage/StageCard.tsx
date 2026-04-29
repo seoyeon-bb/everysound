@@ -27,7 +27,14 @@ export function StageCard({ recording, liked = false, onToggleLike }: Props) {
         <button
           type="button"
           aria-label={t("actions.play")}
-          onClick={() => play(recording.audio_key)}
+          onClick={() => {
+            play(recording.audio_key);
+            if (playable) {
+              void fetch(`/api/stage/${recording.id}/play`, {
+                method: "POST",
+              }).catch(() => {});
+            }
+          }}
           disabled={!playable}
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition active:scale-95 ${
             playable

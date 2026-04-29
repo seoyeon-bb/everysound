@@ -94,7 +94,14 @@ export function SoundActions({
       <div className="mt-6 flex gap-2">
         <button
           type="button"
-          onClick={() => play(audioKey)}
+          onClick={() => {
+            play(audioKey);
+            if (playable) {
+              void fetch(`/api/sounds/${soundId}/play`, {
+                method: "POST",
+              }).catch(() => {});
+            }
+          }}
           disabled={!playable}
           className={`flex-1 rounded-full py-3 text-sm font-semibold transition active:scale-[0.98] ${
             playable

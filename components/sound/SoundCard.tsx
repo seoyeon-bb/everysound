@@ -43,7 +43,14 @@ export function SoundCard({ sound, onAddToLaunchpad }: SoundCardProps) {
         <div className="flex shrink-0 flex-col gap-1.5">
           <button
             type="button"
-            onClick={() => play(sound.audio_key)}
+            onClick={() => {
+              play(sound.audio_key);
+              if (playable) {
+                void fetch(`/api/sounds/${sound.id}/play`, {
+                  method: "POST",
+                }).catch(() => {});
+              }
+            }}
             disabled={!playable}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95 ${
               playable
