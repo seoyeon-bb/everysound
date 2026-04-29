@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
-import { blobToAudioBuffer, pcmToAudioBuffer } from "@/lib/audio/pcm";
+import {
+  blobToAudioBuffer,
+  pcmToAudioBuffer,
+  trimMonoFromBuffer,
+} from "@/lib/audio/pcm";
+import { normalizeRms } from "@/lib/audio/encoder";
 import { acquireMic } from "@/lib/audio/micStream";
 
 const MAX_REC_MS = 5_000;
@@ -196,9 +201,10 @@ export function RecordingWidget({ onCapture }: Props) {
     }
     samplesRef.current = [];
 
+    const normalized = normalizeRms(merged);
     let buffer: AudioBuffer;
     try {
-      buffer = pcmToAudioBuffer(merged, sampleRate);
+      buffer = pcmToAudioBuffer(normalized, sampleRate);
     } catch (e) {
       setError(
         t("encodeFailed", {
@@ -228,7 +234,14 @@ export function RecordingWidget({ onCapture }: Props) {
 
     setBusy(true);
     try {
-      const buffer = await blobToAudioBuffer(file);
+      const baseBuffer = await blobToAudioBuffer(file);
+      const monoSamples = trimMonoFromBuffer(
+        baseBuffer,
+        0,
+        baseBuffer.duration,
+      );
+      const normalized = normalizeRms(monoSamples);
+      const buffer = pcmToAudioBuffer(normalized, baseBuffer.sampleRate);
       onCapture(buffer);
     } catch (err) {
       setError(
