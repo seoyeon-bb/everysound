@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
 import { blobToAudioBuffer, pcmToAudioBuffer } from "@/lib/audio/pcm";
 
-const MAX_REC_MS = 10_000;
+const MAX_REC_MS = 5_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const BUFFER_SIZE = 4096;
 
@@ -63,8 +63,13 @@ export function RecordingWidget({ onCapture }: Props) {
       const segStart = segStartRef.current;
       if (segStart == null) return;
       const elapsed = accMsRef.current + (performance.now() - segStart);
+      if (elapsed >= MAX_REC_MS) {
+        setDisplayedMs(MAX_REC_MS);
+        stopTicker();
+        complete();
+        return;
+      }
       setDisplayedMs(elapsed);
-      if (elapsed >= MAX_REC_MS) complete();
     }, 50) as unknown as number;
   }
 
