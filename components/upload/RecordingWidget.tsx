@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
 import { blobToAudioBuffer, pcmToAudioBuffer } from "@/lib/audio/pcm";
+import { acquireMic } from "@/lib/audio/micStream";
 
 const MAX_REC_MS = 5_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -39,7 +40,6 @@ export function RecordingWidget({ onCapture }: Props) {
       try {
         sourceRef.current?.disconnect();
       } catch {}
-      streamRef.current?.getTracks().forEach((tr) => tr.stop());
       if (ctxRef.current) {
         try {
           void ctxRef.current.close();
@@ -81,13 +81,7 @@ export function RecordingWidget({ onCapture }: Props) {
 
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
-      });
+      stream = await acquireMic();
     } catch (err) {
       const name = err instanceof Error ? err.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
@@ -174,7 +168,6 @@ export function RecordingWidget({ onCapture }: Props) {
     try {
       sourceRef.current?.disconnect();
     } catch {}
-    streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
     if (ctx) {
       try {
