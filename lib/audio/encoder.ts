@@ -40,7 +40,7 @@ export function normalizeRms(
 export function encodePcmMonoToMp3(
   samples: Float32Array,
   sampleRate: number,
-  kbps = 128,
+  kbps = 192,
 ): Blob {
   const samples16 = floatTo16(samples);
   const encoder = new Mp3Encoder(1, sampleRate, kbps);
