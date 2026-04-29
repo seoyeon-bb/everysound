@@ -93,7 +93,7 @@
       "play": "Play",
       "pause": "Pause",
       "reset": "Re-record / pick another file",
-      "hint": "Drag or resize the highlighted region on the waveform to pick the slice you want (max 3s)."
+      "hint": "Drag or resize the highlighted region on the waveform to pick the slice you want (max 3s). Snap the start to the actual onset — your launchpad will feel snappier."
     }
   },
   "detail": {
