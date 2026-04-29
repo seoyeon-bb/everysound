@@ -196,7 +196,14 @@ export default function LaunchpadPage() {
 
   return (
     <>
-      <header className="flex items-center justify-between px-5 pt-6">
+      <header
+        className="flex select-none items-center justify-between px-5 pt-6"
+        style={{
+          WebkitUserSelect: "none",
+          userSelect: "none",
+          WebkitTouchCallout: "none",
+        }}
+      >
         <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         <div className="flex items-center gap-2">
           {editMode ? (
@@ -232,7 +239,14 @@ export default function LaunchpadPage() {
         </div>
       </header>
 
-      <p className="mt-2 px-5 text-[11px] leading-snug text-neutral-500">
+      <p
+        className="mt-2 select-none px-5 text-[11px] leading-snug text-neutral-500"
+        style={{
+          WebkitUserSelect: "none",
+          userSelect: "none",
+          WebkitTouchCallout: "none",
+        }}
+      >
         {t("record.limitNotice")}
       </p>
 
@@ -267,7 +281,14 @@ export default function LaunchpadPage() {
         )}
       </div>
 
-      <p className="mt-6 px-5 text-center text-xs text-neutral-500">
+      <p
+        className="mt-6 select-none px-5 text-center text-xs text-neutral-500"
+        style={{
+          WebkitUserSelect: "none",
+          userSelect: "none",
+          WebkitTouchCallout: "none",
+        }}
+      >
         {t("padCountHint", { occupied, total: 12 })}
       </p>
 
