@@ -10,6 +10,7 @@ import {
   removeFromLaunchpad,
   swapLaunchpadPositions,
 } from "@/hooks/useLaunchpad";
+import { Howler } from "howler";
 import { setMasterVolume } from "@/lib/audio/engine";
 import { preloadPad } from "@/lib/audio/padEngine";
 import { LaunchpadCapture } from "@/lib/audio/launchpadCapture";
@@ -52,6 +53,32 @@ export default function LaunchpadPage() {
   useEffect(() => {
     LaunchpadCapture.ensureHowlerCtx();
     setMasterVolume(0.85);
+
+    let primed = false;
+    function priming() {
+      if (primed) return;
+      const ctx = Howler.ctx;
+      if (!ctx) return;
+      primed = true;
+      try {
+        const buf = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+      } catch {}
+      if (ctx.state === "suspended") {
+        void ctx.resume();
+      }
+      document.removeEventListener("pointerdown", priming, true);
+      document.removeEventListener("touchstart", priming, true);
+    }
+    document.addEventListener("pointerdown", priming, true);
+    document.addEventListener("touchstart", priming, true);
+    return () => {
+      document.removeEventListener("pointerdown", priming, true);
+      document.removeEventListener("touchstart", priming, true);
+    };
   }, []);
 
   useEffect(() => {

@@ -4,6 +4,22 @@ import { Howl, Howler } from "howler";
 
 const buffers = new Map<string, AudioBuffer>();
 const inflight = new Map<string, Promise<AudioBuffer | null>>();
+let unlocked = false;
+
+function unlockSync(ctx: AudioContext): void {
+  if (unlocked) return;
+  unlocked = true;
+  try {
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch {}
+  if (ctx.state === "suspended") {
+    void ctx.resume();
+  }
+}
 
 function audioUrl(audioKey: string): string | null {
   const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
@@ -65,9 +81,7 @@ export function startPadSustained(
   if (!audioKey) return null;
   const ctx = Howler.ctx;
   if (!ctx) return null;
-  if (ctx.state === "suspended") {
-    void ctx.resume();
-  }
+  unlockSync(ctx);
   const buffer = buffers.get(audioKey);
   const dest = destination();
   if (!buffer || !dest) {
