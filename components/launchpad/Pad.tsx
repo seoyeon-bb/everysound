@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import {
   startPadSustained,
   stopPadSustained,
+  ensurePadReady,
   type PadHandle,
 } from "@/lib/audio/padEngine";
 import type { Sound } from "@/types/sound";
@@ -17,6 +18,13 @@ const PAD_COLORS = [
   "bg-violet-500/85 text-white",
   "bg-pink-500/85 text-white",
 ];
+
+const NO_SELECT_STYLE: React.CSSProperties = {
+  WebkitUserSelect: "none",
+  userSelect: "none",
+  WebkitTouchCallout: "none",
+  WebkitTapHighlightColor: "transparent",
+};
 
 interface PadProps {
   position: number;
@@ -38,19 +46,36 @@ export function Pad({
   onDragStart,
 }: PadProps) {
   const activeRef = useRef<Map<number, PadHandle>>(new Map());
+  const pendingRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const map = activeRef.current;
     return () => {
       map.forEach((handle) => stopPadSustained(handle));
       map.clear();
+      pendingRef.current.clear();
     };
   }, []);
 
-  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+  function bindRelease(pointerId: number) {
+    const release = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      pendingRef.current.delete(pointerId);
+      const h = activeRef.current.get(pointerId);
+      if (h) {
+        stopPadSustained(h);
+        activeRef.current.delete(pointerId);
+      }
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+  }
+
+  async function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (editMode) {
       if (sound) {
-        e.preventDefault();
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {}
@@ -64,23 +89,22 @@ export function Pad({
     try {
       e.currentTarget.setPointerCapture(pointerId);
     } catch {}
-    const handle = startPadSustained(sound.audio_key);
-    if (!handle) return;
-    activeRef.current.set(pointerId, handle);
 
-    const release = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
-      const h = activeRef.current.get(pointerId);
-      if (h) {
-        stopPadSustained(h);
-        activeRef.current.delete(pointerId);
+    pendingRef.current.add(pointerId);
+    bindRelease(pointerId);
+
+    let handle = startPadSustained(sound.audio_key);
+    if (!handle) {
+      await ensurePadReady(sound.audio_key);
+      if (!pendingRef.current.has(pointerId)) return;
+      handle = startPadSustained(sound.audio_key);
+      if (!handle) {
+        pendingRef.current.delete(pointerId);
+        return;
       }
-      window.removeEventListener("pointerup", release);
-      window.removeEventListener("pointercancel", release);
-    };
-
-    window.addEventListener("pointerup", release);
-    window.addEventListener("pointercancel", release);
+    }
+    pendingRef.current.delete(pointerId);
+    activeRef.current.set(pointerId, handle);
   }
 
   const filled = sound !== null;
@@ -98,7 +122,9 @@ export function Pad({
     <div
       data-pad-position={position}
       className={`relative aspect-square ${containerExtras}`}
+      style={NO_SELECT_STYLE}
       onPointerDown={handlePointerDown}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <div
         className={`flex h-full w-full select-none items-center justify-center rounded-2xl px-2 py-2 text-center transition active:scale-95 ${
@@ -108,13 +134,18 @@ export function Pad({
               : "cursor-not-allowed bg-neutral-800/60 text-neutral-500"
             : "border border-dashed border-neutral-800 bg-neutral-900/40 text-xs font-medium text-neutral-700"
         }`}
+        style={NO_SELECT_STYLE}
       >
         {filled ? (
-          <span className="line-clamp-3 text-sm font-semibold leading-tight">
+          <span
+            className="line-clamp-3 text-sm font-semibold leading-tight"
+            style={NO_SELECT_STYLE}
+            draggable={false}
+          >
             {sound!.title}
           </span>
         ) : (
-          <span>{position + 1}</span>
+          <span style={NO_SELECT_STYLE}>{position + 1}</span>
         )}
       </div>
 

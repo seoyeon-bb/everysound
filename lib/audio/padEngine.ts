@@ -3,8 +3,10 @@
 import { Howl, Howler } from "howler";
 
 const buffers = new Map<string, AudioBuffer>();
-const inflight = new Map<string, Promise<AudioBuffer | null>>();
+const rawData = new Map<string, ArrayBuffer>();
+const inflight = new Map<string, Promise<void>>();
 let unlocked = false;
+let stateWatcherSet = false;
 
 function unlockSync(ctx: AudioContext): void {
   if (unlocked) return;
@@ -33,7 +35,37 @@ function ensureCtx(): AudioContext | null {
       new Howl({ src: ["data:audio/mpeg;base64,"], preload: false, volume: 0 });
     } catch {}
   }
-  return Howler.ctx ?? null;
+  const ctx = Howler.ctx ?? null;
+  if (ctx) attachStateWatcher(ctx);
+  return ctx;
+}
+
+function attachStateWatcher(ctx: AudioContext) {
+  if (stateWatcherSet) return;
+  stateWatcherSet = true;
+  ctx.addEventListener("statechange", () => {
+    if (ctx.state === "running") {
+      for (const key of Array.from(rawData.keys())) {
+        void decodeFromRaw(key);
+      }
+    }
+  });
+}
+
+async function decodeFromRaw(audioKey: string): Promise<AudioBuffer | null> {
+  if (buffers.has(audioKey)) return buffers.get(audioKey)!;
+  const raw = rawData.get(audioKey);
+  if (!raw) return null;
+  const ctx = Howler.ctx;
+  if (!ctx) return null;
+  try {
+    const audioBuffer = await ctx.decodeAudioData(raw.slice(0));
+    buffers.set(audioKey, audioBuffer);
+    rawData.delete(audioKey);
+    return audioBuffer;
+  } catch {
+    return null;
+  }
 }
 
 function destination(): AudioNode | null {
@@ -56,19 +88,32 @@ export async function preloadPad(audioKey: string): Promise<void> {
 
   const p = (async () => {
     try {
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      const arrBuf = await res.arrayBuffer();
-      const buffer = await ctx.decodeAudioData(arrBuf.slice(0));
-      buffers.set(audioKey, buffer);
-      return buffer;
-    } catch {
-      return null;
-    }
+      let arr = rawData.get(audioKey);
+      if (!arr) {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        arr = await res.arrayBuffer();
+        rawData.set(audioKey, arr);
+      }
+      try {
+        const audioBuffer = await ctx.decodeAudioData(arr.slice(0));
+        buffers.set(audioKey, audioBuffer);
+        rawData.delete(audioKey);
+      } catch {
+        // ctx may be suspended; rawData stays, retried on statechange
+      }
+    } catch {}
   })();
   inflight.set(audioKey, p);
   await p;
   inflight.delete(audioKey);
+}
+
+export async function ensurePadReady(audioKey: string): Promise<AudioBuffer | null> {
+  if (buffers.has(audioKey)) return buffers.get(audioKey)!;
+  await preloadPad(audioKey);
+  if (buffers.has(audioKey)) return buffers.get(audioKey)!;
+  return decodeFromRaw(audioKey);
 }
 
 export interface PadHandle {
@@ -85,7 +130,7 @@ export function startPadSustained(
   const buffer = buffers.get(audioKey);
   const dest = destination();
   if (!buffer || !dest) {
-    void preloadPad(audioKey);
+    void ensurePadReady(audioKey);
     return null;
   }
   const source = ctx.createBufferSource();
