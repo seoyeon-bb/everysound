@@ -37,12 +37,13 @@ export function Pad({
   onRemove,
   onDragStart,
 }: PadProps) {
-  const handleRef = useRef<PadHandle | null>(null);
+  const activeRef = useRef<Map<number, PadHandle>>(new Map());
 
   useEffect(() => {
+    const map = activeRef.current;
     return () => {
-      stopPadSustained(handleRef.current);
-      handleRef.current = null;
+      map.forEach((handle) => stopPadSustained(handle));
+      map.clear();
     };
   }, []);
 
@@ -59,41 +60,36 @@ export function Pad({
     }
     if (!sound?.audio_key) return;
     e.preventDefault();
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
-    stopPadSustained(handleRef.current);
-    handleRef.current = startPadSustained(sound.audio_key);
-  }
 
-  function endSustain() {
-    if (handleRef.current) {
-      stopPadSustained(handleRef.current);
-      handleRef.current = null;
-    }
-  }
+    const pointerId = e.pointerId;
+    const handle = startPadSustained(sound.audio_key);
+    if (!handle) return;
+    activeRef.current.set(pointerId, handle);
 
-  function handlePointerUp() {
-    if (editMode) return;
-    endSustain();
-  }
+    const release = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      const h = activeRef.current.get(pointerId);
+      if (h) {
+        stopPadSustained(h);
+        activeRef.current.delete(pointerId);
+      }
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+    };
 
-  function handlePointerCancel() {
-    endSustain();
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
   }
 
   const filled = sound !== null;
   const playable = Boolean(sound?.audio_key);
   const color = filled ? PAD_COLORS[position % PAD_COLORS.length] : "";
 
-  let containerExtras = "transition-transform";
+  let containerExtras = "transition-transform select-none touch-none";
   if (editMode) {
-    containerExtras += " select-none touch-none";
     if (isDraggingThis) containerExtras += " opacity-40 scale-95";
     else if (isHoverTarget) containerExtras += " ring-4 ring-emerald-400 scale-[1.03]";
     else if (filled) containerExtras += " animate-[pulse_1.6s_ease-in-out_infinite]";
-  } else {
-    containerExtras += " select-none touch-none";
   }
 
   return (
@@ -101,8 +97,6 @@ export function Pad({
       data-pad-position={position}
       className={`relative aspect-square ${containerExtras}`}
       onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
     >
       <div
         className={`flex h-full w-full select-none items-center justify-center rounded-2xl px-2 py-2 text-center transition active:scale-95 ${

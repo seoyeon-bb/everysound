@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { CategoryPicker } from "@/components/upload/CategoryPicker";
 import { TagInput } from "@/components/upload/TagInput";
 import { RecordingWidget } from "@/components/upload/RecordingWidget";
+import { TrimWidget, type TrimWidgetHandle } from "@/components/upload/TrimWidget";
 import { Field } from "@/components/upload/Field";
+import { encodePcmMonoToMp3, normalizeRms } from "@/lib/audio/encoder";
 import type { CategoryKey } from "@/lib/categories";
 
 const TEXT_INPUT =
   "w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500/50 focus:outline-none";
 
-type Phase = "idle" | "uploading" | "saving";
+type Phase = "idle" | "encoding" | "uploading" | "saving";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -26,19 +28,19 @@ export default function UploadPage() {
   const [category, setCategory] = useState<CategoryKey | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [nickname, setLocalNickname] = useState("");
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioDurationMs, setAudioDurationMs] = useState(0);
+  const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
+  const trimRef = useRef<TrimWidgetHandle>(null);
 
   useEffect(() => {
     if (storedNickname) setLocalNickname(storedNickname);
   }, [storedNickname]);
 
-  const recorded = audioBlob !== null;
+  const captured = audioBuffer !== null;
   const submitting = phase !== "idle";
   const canSubmit =
-    recorded &&
+    captured &&
     title.trim() !== "" &&
     summary.trim() !== "" &&
     category !== null &&
@@ -46,8 +48,29 @@ export default function UploadPage() {
     !submitting;
 
   async function handleSubmit() {
-    if (!canSubmit || !audioBlob || !category) return;
+    if (!canSubmit || !audioBuffer || !category) return;
     setError(null);
+
+    setPhase("encoding");
+    let mp3Blob: Blob;
+    let durationMs: number;
+    try {
+      const trim = trimRef.current?.getCurrentTrim();
+      if (!trim || trim.samples.length === 0) {
+        throw new Error("no audio selected");
+      }
+      const normalized = normalizeRms(trim.samples);
+      mp3Blob = encodePcmMonoToMp3(normalized, trim.sampleRate);
+      durationMs = trim.durationMs;
+    } catch (e) {
+      setError(
+        t("errors.encode", {
+          message: e instanceof Error ? e.message : String(e),
+        }),
+      );
+      setPhase("idle");
+      return;
+    }
 
     try {
       const soundId = crypto.randomUUID();
@@ -62,8 +85,8 @@ export default function UploadPage() {
         },
         body: JSON.stringify({
           fileName,
-          contentType: audioBlob.type || "audio/mpeg",
-          contentLength: audioBlob.size,
+          contentType: "audio/mpeg",
+          contentLength: mp3Blob.size,
         }),
       });
       if (!r1.ok) {
@@ -74,8 +97,8 @@ export default function UploadPage() {
 
       const r2 = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": audioBlob.type || "audio/mpeg" },
-        body: audioBlob,
+        headers: { "Content-Type": "audio/mpeg" },
+        body: mp3Blob,
       });
       if (!r2.ok) {
         throw new Error(`upload HTTP ${r2.status}`);
@@ -96,10 +119,9 @@ export default function UploadPage() {
           category,
           tags,
           audio_key: key,
-          duration_ms: audioDurationMs,
+          duration_ms: durationMs,
           uploader_nickname: nickname.trim() || null,
         }),
-
       });
       if (!r3.ok) {
         const e = await r3.json().catch(() => ({}));
@@ -115,6 +137,7 @@ export default function UploadPage() {
   }
 
   function submitLabel() {
+    if (phase === "encoding") return t("phases.encoding");
     if (phase === "uploading") return t("phases.uploading");
     if (phase === "saving") return t("phases.saving");
     return t("submit");
@@ -146,7 +169,7 @@ export default function UploadPage() {
 
       <h1 className="text-2xl font-bold tracking-tight">{t("heading")}</h1>
       <p className="mt-1 text-sm text-neutral-500">
-        {recorded ? t("subtitleAfter") : t("subtitleBefore")}
+        {captured ? t("subtitleAfter") : t("subtitleBefore")}
       </p>
 
       {error && (
@@ -156,15 +179,18 @@ export default function UploadPage() {
       )}
 
       <div className="mt-6">
-        <RecordingWidget
-          onChange={(blob, ms) => {
-            setAudioBlob(blob);
-            setAudioDurationMs(ms);
-          }}
-        />
+        {captured && audioBuffer ? (
+          <TrimWidget
+            ref={trimRef}
+            buffer={audioBuffer}
+            onReset={() => setAudioBuffer(null)}
+          />
+        ) : (
+          <RecordingWidget onCapture={setAudioBuffer} />
+        )}
       </div>
 
-      {recorded && (
+      {captured && (
         <div className="mt-6 space-y-5">
           <Field label={`${t("fields.title")} *`}>
             <input

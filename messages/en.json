@@ -81,7 +81,19 @@
       "micDeniedDetail": "Microphone access denied. If you didn't deny it, iOS Safari may have just expired the grant. Tap \"Start\" again. If no prompt appears, allow it manually:\n• iOS Safari: Settings > Safari > Microphone > allow this site\n• Mac Safari: Safari > Settings > Websites > Microphone\n• Chrome: lock icon 🔒 > Site settings > Microphone\nThen refresh.",
       "micNotFound": "No microphone device found. Check your mic connection and try again.",
       "micBusy": "Another app is using the microphone. Close it and try again.",
-      "micUnavailable": "Microphone unavailable. Tap \"Start\" again."
+      "micUnavailable": "Microphone unavailable. Tap \"Start\" again.",
+      "uploadFile": "Upload a file (mp3, mp4, wav…)",
+      "decoding": "Decoding file…",
+      "fileTooLarge": "File too large. Use a file under 10MB.",
+      "decodeFailed": "Failed to decode audio: {message}",
+      "encodeFailed": "Audio processing failed: {message}",
+      "empty": "Nothing was recorded. Try again."
+    },
+    "trim": {
+      "play": "Play",
+      "pause": "Pause",
+      "reset": "Re-record / pick another file",
+      "hint": "Drag or resize the highlighted region on the waveform to pick the slice you want (max 3s)."
     }
   },
   "detail": {

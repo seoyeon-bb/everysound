@@ -1,24 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
-import { encodePcmMonoToMp3, normalizeRms } from "@/lib/audio/encoder";
+import { blobToAudioBuffer, pcmToAudioBuffer } from "@/lib/audio/pcm";
 
-const MAX_MS = 3000;
-const BUFFER_SIZE = 16384;
+const MAX_REC_MS = 10_000;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const BUFFER_SIZE = 4096;
 
-type State = "ready" | "recording" | "paused" | "done";
+type State = "ready" | "recording" | "paused";
 
 interface Props {
-  onChange: (blob: Blob | null, durationMs: number) => void;
+  onCapture: (buffer: AudioBuffer) => void;
 }
 
-export function RecordingWidget({ onChange }: Props) {
+export function RecordingWidget({ onCapture }: Props) {
   const t = useTranslations("upload.record");
   const [state, setState] = useState<State>("ready");
   const [displayedMs, setDisplayedMs] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const ctxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -45,9 +46,8 @@ export function RecordingWidget({ onChange }: Props) {
         } catch {}
       }
       if (tickerRef.current) clearInterval(tickerRef.current);
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, [audioUrl]);
+  }, []);
 
   function stopTicker() {
     if (tickerRef.current) {
@@ -64,17 +64,12 @@ export function RecordingWidget({ onChange }: Props) {
       if (segStart == null) return;
       const elapsed = accMsRef.current + (performance.now() - segStart);
       setDisplayedMs(elapsed);
-      if (elapsed >= MAX_MS) complete();
+      if (elapsed >= MAX_REC_MS) complete();
     }, 50) as unknown as number;
   }
 
   async function start() {
     setError(null);
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
-    onChange(null, 0);
     accMsRef.current = 0;
     setDisplayedMs(0);
     samplesRef.current = [];
@@ -96,8 +91,6 @@ export function RecordingWidget({ onChange }: Props) {
         setError(t("micNotFound"));
       } else if (name === "NotReadableError" || name === "TrackStartError") {
         setError(t("micBusy"));
-      } else if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
-        setError(t("micUnavailable"));
       } else {
         setError(t("micUnavailable"));
       }
@@ -158,7 +151,7 @@ export function RecordingWidget({ onChange }: Props) {
   }
 
   function complete() {
-    if (state === "ready" || state === "done") return;
+    if (state === "ready") return;
     isRecordingRef.current = false;
     const segStart = segStartRef.current;
     if (segStart != null) {
@@ -191,27 +184,17 @@ export function RecordingWidget({ onChange }: Props) {
       setState("ready");
       return;
     }
-    const maxSamples = Math.floor((MAX_MS / 1000) * sampleRate);
-    const finalLen = Math.min(totalLen, maxSamples);
-    const merged = new Float32Array(finalLen);
+    const merged = new Float32Array(totalLen);
     let offset = 0;
     for (const a of samplesRef.current) {
-      if (offset >= finalLen) break;
-      const toCopy = Math.min(a.length, finalLen - offset);
-      merged.set(a.subarray(0, toCopy), offset);
-      offset += toCopy;
+      merged.set(a, offset);
+      offset += a.length;
     }
     samplesRef.current = [];
 
-    const normalized = normalizeRms(merged);
-    const finalDurationMs = Math.min(
-      Math.round((finalLen / sampleRate) * 1000),
-      MAX_MS,
-    );
-
-    let mp3Blob: Blob;
+    let buffer: AudioBuffer;
     try {
-      mp3Blob = encodePcmMonoToMp3(normalized, sampleRate);
+      buffer = pcmToAudioBuffer(merged, sampleRate);
     } catch (e) {
       setError(
         t("encodeFailed", {
@@ -222,27 +205,40 @@ export function RecordingWidget({ onChange }: Props) {
       return;
     }
 
-    const url = URL.createObjectURL(mp3Blob);
-    setAudioUrl(url);
-    setState("done");
-    onChange(mp3Blob, finalDurationMs);
-  }
-
-  function reset() {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
     accMsRef.current = 0;
     setDisplayedMs(0);
-    samplesRef.current = [];
-    setError(null);
-    onChange(null, 0);
     setState("ready");
+    onCapture(buffer);
+  }
+
+  async function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+
+    if (file.size > MAX_FILE_BYTES) {
+      setError(t("fileTooLarge"));
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const buffer = await blobToAudioBuffer(file);
+      onCapture(buffer);
+    } catch (err) {
+      setError(
+        t("decodeFailed", {
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   const elapsedDisplay = (displayedMs / 1000).toFixed(1);
-  const progressPct = Math.min(100, (displayedMs / MAX_MS) * 100);
+  const progressPct = Math.min(100, (displayedMs / MAX_REC_MS) * 100);
 
   function primaryAction() {
     if (state === "ready") return start();
@@ -269,74 +265,78 @@ export function RecordingWidget({ onChange }: Props) {
         </p>
       )}
 
-      {state !== "done" ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-sm tabular-nums text-rose-400">
-              {elapsedDisplay} / 3.0s
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-sm tabular-nums text-rose-400">
+            {elapsedDisplay} / {(MAX_REC_MS / 1000).toFixed(0)}.0s
+          </span>
+          {state === "recording" && (
+            <span className="flex items-center gap-1.5 text-xs text-rose-400">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-rose-500" />
+              {t("recording")}
             </span>
-            {state === "recording" && (
-              <span className="flex items-center gap-1.5 text-xs text-rose-400">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-rose-500" />
-                {t("recording")}
-              </span>
-            )}
-            {state === "paused" && (
-              <span className="flex items-center gap-1.5 text-xs text-rose-400">
-                <span className="inline-block h-2 w-2 rounded-full bg-rose-500 opacity-40" />
-                {t("paused")}
-              </span>
-            )}
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-neutral-800">
-            <div
-              className="h-full bg-rose-500 transition-all"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={primaryAction}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition active:scale-95 ${primaryStyle}`}
-            >
-              {state === "recording" ? (
-                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                  <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
-              {primaryLabel}
-            </button>
-            <button
-              type="button"
-              onClick={complete}
-              disabled={state === "ready"}
-              className={`flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-semibold transition active:scale-95 ${
-                state === "ready"
-                  ? "cursor-not-allowed bg-neutral-800 text-neutral-600"
-                  : "bg-emerald-500 text-neutral-950"
-              }`}
-            >
-              {t("complete")}
-            </button>
-          </div>
+          )}
+          {state === "paused" && (
+            <span className="flex items-center gap-1.5 text-xs text-rose-400">
+              <span className="inline-block h-2 w-2 rounded-full bg-rose-500 opacity-40" />
+              {t("paused")}
+            </span>
+          )}
         </div>
-      ) : (
-        <div className="space-y-2">
-          {audioUrl && <audio src={audioUrl} controls className="w-full" />}
+        <div className="h-2 overflow-hidden rounded-full bg-neutral-800">
+          <div
+            className="h-full bg-rose-500 transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <div className="flex gap-2">
           <button
             type="button"
-            onClick={reset}
-            className="w-full rounded-full bg-neutral-800 py-2 text-sm font-medium text-neutral-200 transition hover:bg-neutral-700"
+            onClick={primaryAction}
+            disabled={busy}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition active:scale-95 ${primaryStyle} ${busy ? "opacity-60" : ""}`}
           >
-            {t("retry")}
+            {state === "recording" ? (
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+            {primaryLabel}
+          </button>
+          <button
+            type="button"
+            onClick={complete}
+            disabled={state === "ready"}
+            className={`flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-semibold transition active:scale-95 ${
+              state === "ready"
+                ? "cursor-not-allowed bg-neutral-800 text-neutral-600"
+                : "bg-emerald-500 text-neutral-950"
+            }`}
+          >
+            {t("complete")}
           </button>
         </div>
-      )}
+
+        {state === "ready" && (
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-700 px-3 py-2.5 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v12m0 0l-4-4m4 4l4-4M4 19h16" />
+            </svg>
+            {busy ? t("decoding") : t("uploadFile")}
+            <input
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleFile}
+              disabled={busy}
+            />
+          </label>
+        )}
+      </div>
     </div>
   );
 }
