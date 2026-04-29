@@ -8,11 +8,15 @@ import {
   trimMonoFromBuffer,
 } from "@/lib/audio/pcm";
 import { normalizeRms } from "@/lib/audio/encoder";
-import { acquireMic } from "@/lib/audio/micStream";
+import {
+  setupRecordingChain,
+  startSession,
+  stopSession,
+  abortSession,
+} from "@/lib/audio/micStream";
 
 const MAX_REC_MS = 5_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const BUFFER_SIZE = 4096;
 
 type State = "ready" | "recording" | "paused";
 
@@ -27,31 +31,14 @@ export function RecordingWidget({ onCapture }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const ctxRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const samplesRef = useRef<Float32Array[]>([]);
-  const isRecordingRef = useRef(false);
   const accMsRef = useRef(0);
   const segStartRef = useRef<number | null>(null);
   const tickerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      try {
-        processorRef.current?.disconnect();
-      } catch {}
-      try {
-        sourceRef.current?.disconnect();
-      } catch {}
-      streamRef.current?.getTracks().forEach((tr) => tr.stop());
-      if (ctxRef.current) {
-        try {
-          void ctxRef.current.close();
-        } catch {}
-      }
       if (tickerRef.current) clearInterval(tickerRef.current);
+      abortSession();
     };
   }, []);
 
@@ -83,11 +70,9 @@ export function RecordingWidget({ onCapture }: Props) {
     setError(null);
     accMsRef.current = 0;
     setDisplayedMs(0);
-    samplesRef.current = [];
 
-    let baseStream: MediaStream;
     try {
-      baseStream = await acquireMic();
+      await setupRecordingChain();
     } catch (err) {
       const name = err instanceof Error ? err.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
@@ -101,45 +86,14 @@ export function RecordingWidget({ onCapture }: Props) {
       }
       return;
     }
-    const tracks = baseStream.getAudioTracks().map((t) => t.clone());
-    const stream = new MediaStream(tracks);
-    streamRef.current = stream;
 
-    const Ctx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new Ctx();
-    if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch {}
-    }
-    ctxRef.current = ctx;
-
-    const source = ctx.createMediaStreamSource(stream);
-    sourceRef.current = source;
-
-    const processor = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
-    processorRef.current = processor;
-    isRecordingRef.current = true;
-
-    processor.onaudioprocess = (e) => {
-      if (!isRecordingRef.current) return;
-      const input = e.inputBuffer.getChannelData(0);
-      samplesRef.current.push(new Float32Array(input));
-    };
-
-    source.connect(processor);
-    processor.connect(ctx.destination);
-
+    startSession();
     setState("recording");
     startTicker();
   }
 
   function pause() {
     if (state !== "recording") return;
-    isRecordingRef.current = false;
     const segStart = segStartRef.current;
     if (segStart != null) {
       accMsRef.current += performance.now() - segStart;
@@ -152,14 +106,12 @@ export function RecordingWidget({ onCapture }: Props) {
 
   function resume() {
     if (state !== "paused") return;
-    isRecordingRef.current = true;
     setState("recording");
     startTicker();
   }
 
   function complete() {
     if (state === "ready") return;
-    isRecordingRef.current = false;
     const segStart = segStartRef.current;
     if (segStart != null) {
       accMsRef.current += performance.now() - segStart;
@@ -167,44 +119,23 @@ export function RecordingWidget({ onCapture }: Props) {
     }
     stopTicker();
 
-    const ctx = ctxRef.current;
-    const sampleRate = ctx?.sampleRate ?? 44100;
-
-    try {
-      processorRef.current?.disconnect();
-    } catch {}
-    try {
-      sourceRef.current?.disconnect();
-    } catch {}
-    streamRef.current?.getTracks().forEach((tr) => tr.stop());
-    if (ctx) {
-      try {
-        void ctx.close();
-      } catch {}
-    }
-    processorRef.current = null;
-    sourceRef.current = null;
-    streamRef.current = null;
-    ctxRef.current = null;
-
-    const totalLen = samplesRef.current.reduce((s, a) => s + a.length, 0);
-    if (totalLen === 0) {
+    const result = stopSession();
+    if (!result || result.samples.length === 0) {
       setError(t("empty"));
       setState("ready");
       return;
     }
-    const merged = new Float32Array(totalLen);
-    let offset = 0;
-    for (const a of samplesRef.current) {
-      merged.set(a, offset);
-      offset += a.length;
-    }
-    samplesRef.current = [];
 
-    const normalized = normalizeRms(merged);
+    const maxSamples = Math.floor((MAX_REC_MS / 1000) * result.sampleRate);
+    const samples =
+      result.samples.length > maxSamples
+        ? result.samples.subarray(0, maxSamples)
+        : result.samples;
+
+    const normalized = normalizeRms(samples);
     let buffer: AudioBuffer;
     try {
-      buffer = pcmToAudioBuffer(normalized, sampleRate);
+      buffer = pcmToAudioBuffer(normalized, result.sampleRate);
     } catch (e) {
       setError(
         t("encodeFailed", {
