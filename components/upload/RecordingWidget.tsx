@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
 import { blobToAudioBuffer, pcmToAudioBuffer } from "@/lib/audio/pcm";
-import { acquireMic } from "@/lib/audio/micStream";
+import { acquireMic, ensureRecCtxRunning } from "@/lib/audio/micStream";
 
 const MAX_REC_MS = 5_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -40,11 +40,6 @@ export function RecordingWidget({ onCapture }: Props) {
       try {
         sourceRef.current?.disconnect();
       } catch {}
-      if (ctxRef.current) {
-        try {
-          void ctxRef.current.close();
-        } catch {}
-      }
       if (tickerRef.current) clearInterval(tickerRef.current);
     };
   }, []);
@@ -97,16 +92,7 @@ export function RecordingWidget({ onCapture }: Props) {
     }
     streamRef.current = stream;
 
-    const Ctx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new Ctx();
-    if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch {}
-    }
+    const ctx = await ensureRecCtxRunning();
     ctxRef.current = ctx;
 
     const source = ctx.createMediaStreamSource(stream);
@@ -168,12 +154,9 @@ export function RecordingWidget({ onCapture }: Props) {
     try {
       sourceRef.current?.disconnect();
     } catch {}
+    processorRef.current = null;
+    sourceRef.current = null;
     streamRef.current = null;
-    if (ctx) {
-      try {
-        void ctx.close();
-      } catch {}
-    }
     ctxRef.current = null;
 
     const totalLen = samplesRef.current.reduce((s, a) => s + a.length, 0);
