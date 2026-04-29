@@ -9,12 +9,22 @@ const TABS = [
   { key: "stage", href: "/stage" },
 ] as const;
 
+const NO_SELECT_STYLE: React.CSSProperties = {
+  WebkitUserSelect: "none",
+  userSelect: "none",
+  WebkitTouchCallout: "none",
+  WebkitTapHighlightColor: "transparent",
+};
+
 export function BottomTabBar() {
   const pathname = usePathname();
   const t = useTranslations("nav");
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 h-16 border-t border-neutral-800 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/80">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 h-16 select-none border-t border-neutral-800 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/80"
+      style={NO_SELECT_STYLE}
+    >
       <ul className="mx-auto flex h-full max-w-screen-md items-stretch">
         {TABS.map((tab) => {
           const active =
@@ -26,8 +36,10 @@ export function BottomTabBar() {
                 className={`flex h-full flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
                   active ? "text-emerald-400" : "text-neutral-500 hover:text-neutral-300"
                 }`}
+                style={NO_SELECT_STYLE}
+                draggable={false}
               >
-                <span>{t(tab.key)}</span>
+                <span style={NO_SELECT_STYLE}>{t(tab.key)}</span>
               </Link>
             </li>
           );
