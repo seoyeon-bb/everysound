@@ -61,7 +61,10 @@ export function LaunchpadGrid({ slots, editMode, onRemove, onSwap }: Props) {
   }, [editMode]);
 
   return (
-    <div className="grid grid-cols-3 gap-2.5 md:grid-cols-4">
+    <div
+      className="grid grid-cols-3 gap-2.5 [touch-action:none] md:grid-cols-4"
+      style={{ touchAction: "none" }}
+    >
       {slots.map((slot) => (
         <Pad
           key={slot.position}

@@ -59,9 +59,11 @@ export function Pad({
       return;
     }
     if (!sound?.audio_key) return;
-    e.preventDefault();
 
     const pointerId = e.pointerId;
+    try {
+      e.currentTarget.setPointerCapture(pointerId);
+    } catch {}
     const handle = startPadSustained(sound.audio_key);
     if (!handle) return;
     activeRef.current.set(pointerId, handle);
