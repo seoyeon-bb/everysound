@@ -46,27 +46,46 @@ export function Pad({
   onDragStart,
 }: PadProps) {
   const activeRef = useRef<Map<number, PadHandle>>(new Map());
-  const pendingRef = useRef<Set<number>>(new Set());
+  const releaseFnsRef = useRef<Map<number, () => void>>(new Map());
 
   useEffect(() => {
-    const map = activeRef.current;
+    const handles = activeRef.current;
+    const releases = releaseFnsRef.current;
     return () => {
-      map.forEach((handle) => stopPadSustained(handle));
-      map.clear();
-      pendingRef.current.clear();
+      handles.forEach((handle) => stopPadSustained(handle));
+      handles.clear();
+      releases.forEach((fn) => fn());
+      releases.clear();
     };
   }, []);
 
   function releasePointer(pointerId: number) {
-    pendingRef.current.delete(pointerId);
     const h = activeRef.current.get(pointerId);
     if (h) {
       stopPadSustained(h);
       activeRef.current.delete(pointerId);
     }
+    const cleanup = releaseFnsRef.current.get(pointerId);
+    if (cleanup) {
+      cleanup();
+      releaseFnsRef.current.delete(pointerId);
+    }
   }
 
-  async function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+  function bindDocumentRelease(pointerId: number) {
+    const handler = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      releasePointer(pointerId);
+    };
+    document.addEventListener("pointerup", handler);
+    document.addEventListener("pointercancel", handler);
+    releaseFnsRef.current.set(pointerId, () => {
+      document.removeEventListener("pointerup", handler);
+      document.removeEventListener("pointercancel", handler);
+    });
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (editMode) {
       if (sound) {
         try {
@@ -80,45 +99,25 @@ export function Pad({
 
     const pointerId = e.pointerId;
 
-    const prior = activeRef.current.get(pointerId);
-    if (prior) {
-      stopPadSustained(prior);
-      activeRef.current.delete(pointerId);
+    releasePointer(pointerId);
+
+    bindDocumentRelease(pointerId);
+
+    const handle = startPadSustained(sound.audio_key);
+    if (handle) {
+      activeRef.current.set(pointerId, handle);
+    } else {
+      void ensurePadReady(sound.audio_key).then(() => {
+        if (!releaseFnsRef.current.has(pointerId)) return;
+        const h = startPadSustained(sound.audio_key!);
+        if (!h) return;
+        if (!releaseFnsRef.current.has(pointerId)) {
+          stopPadSustained(h);
+          return;
+        }
+        activeRef.current.set(pointerId, h);
+      });
     }
-
-    try {
-      e.currentTarget.setPointerCapture(pointerId);
-    } catch {}
-
-    pendingRef.current.add(pointerId);
-
-    let handle = startPadSustained(sound.audio_key);
-    if (!handle) {
-      await ensurePadReady(sound.audio_key);
-      if (!pendingRef.current.has(pointerId)) return;
-      handle = startPadSustained(sound.audio_key);
-      if (!handle) {
-        pendingRef.current.delete(pointerId);
-        return;
-      }
-    }
-
-    if (!pendingRef.current.has(pointerId)) {
-      stopPadSustained(handle);
-      return;
-    }
-    pendingRef.current.delete(pointerId);
-    activeRef.current.set(pointerId, handle);
-  }
-
-  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    if (editMode) return;
-    releasePointer(e.pointerId);
-  }
-
-  function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
-    if (editMode) return;
-    releasePointer(e.pointerId);
   }
 
   const filled = sound !== null;
@@ -138,8 +137,6 @@ export function Pad({
       className={`relative aspect-square ${containerExtras}`}
       style={NO_SELECT_STYLE}
       onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
       onContextMenu={(e) => e.preventDefault()}
     >
       <div
