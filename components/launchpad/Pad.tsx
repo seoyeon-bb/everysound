@@ -57,20 +57,13 @@ export function Pad({
     };
   }, []);
 
-  function bindRelease(pointerId: number) {
-    const release = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
-      pendingRef.current.delete(pointerId);
-      const h = activeRef.current.get(pointerId);
-      if (h) {
-        stopPadSustained(h);
-        activeRef.current.delete(pointerId);
-      }
-      window.removeEventListener("pointerup", release);
-      window.removeEventListener("pointercancel", release);
-    };
-    window.addEventListener("pointerup", release);
-    window.addEventListener("pointercancel", release);
+  function releasePointer(pointerId: number) {
+    pendingRef.current.delete(pointerId);
+    const h = activeRef.current.get(pointerId);
+    if (h) {
+      stopPadSustained(h);
+      activeRef.current.delete(pointerId);
+    }
   }
 
   async function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -86,12 +79,18 @@ export function Pad({
     if (!sound?.audio_key) return;
 
     const pointerId = e.pointerId;
+
+    const prior = activeRef.current.get(pointerId);
+    if (prior) {
+      stopPadSustained(prior);
+      activeRef.current.delete(pointerId);
+    }
+
     try {
       e.currentTarget.setPointerCapture(pointerId);
     } catch {}
 
     pendingRef.current.add(pointerId);
-    bindRelease(pointerId);
 
     let handle = startPadSustained(sound.audio_key);
     if (!handle) {
@@ -103,8 +102,23 @@ export function Pad({
         return;
       }
     }
+
+    if (!pendingRef.current.has(pointerId)) {
+      stopPadSustained(handle);
+      return;
+    }
     pendingRef.current.delete(pointerId);
     activeRef.current.set(pointerId, handle);
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (editMode) return;
+    releasePointer(e.pointerId);
+  }
+
+  function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
+    if (editMode) return;
+    releasePointer(e.pointerId);
   }
 
   const filled = sound !== null;
@@ -124,6 +138,8 @@ export function Pad({
       className={`relative aspect-square ${containerExtras}`}
       style={NO_SELECT_STYLE}
       onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       onContextMenu={(e) => e.preventDefault()}
     >
       <div
